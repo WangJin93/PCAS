@@ -1,0 +1,13 @@
+name: PCAS
+title: PCAS
+username: jingle
+account: jingle
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11811284
+bundleId: 8516502
+url: https://jingle.shinyapps.io/PCAS/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app0.R|refseq_P.csv|www/abstract.tif|dele
