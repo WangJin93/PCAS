@@ -19,7 +19,7 @@ viz_DEGs_volcano <- function(df,
                     show.labels=NULL){
 
 
-  df$change<-ifelse(df$P.Value<p.cut,ifelse(df$logFC < -logFC.cut,"Down",ifelse(df$logFC > logFC.cut,"Up","No")),"No")
+  df$change<-ifelse(df$adj.P.Val<p.cut,ifelse(df$logFC < -logFC.cut,"Down",ifelse(df$logFC > logFC.cut,"Up","No")),"No")
   df<-arrange(df,logFC)
   if (show.top == TRUE){
     top5 <-c(df[c(1:5),1], df[c((nrow(df)-4):nrow(df)),1])
@@ -29,7 +29,7 @@ viz_DEGs_volcano <- function(df,
     df$label <- ifelse(df$Symbol %in% show.labels,df$Symbol,"")
   }
   p <-  ggplot(data = df) +
-    aes(x=logFC %>% as.numeric(),y=-log10(P.Value %>% as.numeric())) +
+    aes(x=logFC %>% as.numeric(),y=-log10(adj.P.Val %>% as.numeric())) +
     # geom_point(alpha = input$alphaInput, size = input$pointSize, shape = 16) +
     geom_point(size = 2, shape = 16,alpha=0.8) +
 
@@ -44,7 +44,7 @@ viz_DEGs_volcano <- function(df,
 
   p <- p+ theme(panel.grid.major = element_blank(),
                 panel.grid.minor = element_blank())+
-    labs(x=bquote(''*Log[2]*' (Fold change)'), y=bquote(''*-Log[10]*' (P value)'))
+    labs(x=bquote(''*Log[2]*' (Fold change)'), y=bquote(''*-Log[10]*' (P.adj value)'))
 
   ########## User defined labeling
   if (show.top|!is.null(show.labels)){

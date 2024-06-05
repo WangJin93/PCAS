@@ -49,7 +49,7 @@ fluidRow(column(3,
         numericInput(ns("logFC_cutoff"), "|logFC| threshold:", value = 1,min = 0),
         selectInput(
           ns("p_cutoff"),
-          "P value threshold:",
+          "Adjust P value threshold:",
           c("0.05","0.01","0.001","0.0001"),
           selected = "0.05",
           multiple = FALSE,

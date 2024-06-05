@@ -41,7 +41,7 @@ viz_TvsN <- function(df,df_type = c("single","multi_gene","multi_set"),
     df$value <- as.numeric(df$value)
     if (Show.P.value == TRUE) {
       pv <- df %>%
-        ggpubr::compare_means(value ~ type, data = ., method = Method, symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")))
+        ggpubr::compare_means(value ~ type, data = ., method = Method, symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")),p.adjust.methods="BH")
       pv <- pv %>% dplyr::select(c("p", "p.signif", "p.adj"))
     }
     count_N<-df %>% group_by(type) %>% tally
@@ -84,7 +84,7 @@ viz_TvsN <- function(df,df_type = c("single","multi_gene","multi_set"),
 
     if (Show.P.value == TRUE) {
       pv <- df %>% as.data.frame() %>%
-        ggpubr::compare_means(value ~ type, data = ., method = Method, group.by = "variable", symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")))
+        ggpubr::compare_means(value ~ type, data = ., method = Method, group.by = "variable", symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")),p.adjust.methods="BH")
       pv <- pv %>% dplyr::select(c("variable", "p", "p.signif", "p.adj"))
       message("Counting P value finished")
     }
@@ -125,7 +125,7 @@ viz_TvsN <- function(df,df_type = c("single","multi_gene","multi_set"),
     df$value <- as.numeric(df$value)
     if (Show.P.value == TRUE) {
       pv <- df %>%
-        ggpubr::compare_means(value ~ type, data = ., method = Method, group.by = "dataset", symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")))
+        ggpubr::compare_means(value ~ type, data = ., method = Method, group.by = "dataset", symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")),p.adjust.methods="BH")
       pv <- pv %>% dplyr::select(c("dataset", "p", "p.signif", "p.adj"))
     }
     count_N<-df %>% group_by(dataset, type) %>% tally
