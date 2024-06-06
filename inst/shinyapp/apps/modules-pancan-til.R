@@ -293,7 +293,7 @@ server.modules_pancan_til <- function(input, output, session) {
     },
     content = function(file) {
         pdf(file,  width =  input$width_scatter/70 ,height = input$height_scatter/70)
-      viz_cor_heatmap(plot_func()$r,plot_func()$p)
+      print(viz_cor_heatmap(plot_func()$r,plot_func()$p))
       dev.off()
     }
   )

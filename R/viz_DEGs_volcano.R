@@ -1,7 +1,7 @@
 #' @title Volcano plot for DEGs
 #' @description
 #' Plotting volcano plot for DEGs between tumor and normal samples in CPTAC datasets.
-#' @import dplyr ggplot2
+#' @import dplyr ggplot2 ggrepel
 #' @param cohort Data cohort, for example, "LUAD_APOLLO", "LUAD_CPTAC".
 #' @param data_input Expression data obtained from get_expr_data() function.
 #' @examples

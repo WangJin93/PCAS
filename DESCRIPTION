@@ -17,4 +17,6 @@ Imports:
  psych,
  reshape2,
  shiny,
- tibble
+ tibble,
+ ggpubr,
+ ggrepel

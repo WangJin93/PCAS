@@ -69,12 +69,12 @@ fluidRow(column(3,
              # p("2. You have to turn on both 'Show P value' and 'Show P label' to show significant labels"),
              tags$br(),
              DT::DTOutput(outputId = ns("tbl")),
-             shinyjs::hidden(
-               wellPanel(
-                 id = ns("save_csv"),
-                 downloadButton(ns("downloadTable"), "Save as csv")
-               )
-        )
+        #      shinyjs::hidden(
+        #        wellPanel(
+        #          id = ns("save_csv"),
+        #          downloadButton(ns("downloadTable"), "Save as csv")
+        #        )
+        # )
       )
     )
   )
@@ -190,13 +190,13 @@ server.modules_multi_gene <- function(input, output, session) {
     }
   )
 
-  observeEvent(input$search_bttn, {
-    if (nchar(input$ga_ids) >= 1) {
-      shinyjs::show(id = "save_csv")
-    } else {
-      shinyjs::hide(id = "save_csv")
-    }
-  })
+  # observeEvent(input$search_bttn, {
+  #   if (nchar(input$ga_ids) >= 1) {
+  #     shinyjs::show(id = "save_csv")
+  #   } else {
+  #     shinyjs::hide(id = "save_csv")
+  #   }
+  # })
 
   output$tbl <- DT::renderDataTable(server = FALSE, {
     DT::datatable(

@@ -1,7 +1,7 @@
 #' @title Visualizing genes expression
 #' @description
 #' Visualizing the different expression of mRNA/protein expression data between Tumor and Normal tissues in CPTAC database.
-#' @import dplyr ggplot2 reshape2
+#' @import dplyr ggplot2 reshape2 ggpubr
 #' @param df Gene expression data obtained from get_expr_data().
 #' @param df_type The type of gene expression data, one value of "single","multi_gene", and "multi_set".
 #' @param Show.P.value Whether to display the results of differential analysis, default TRUE.

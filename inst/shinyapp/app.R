@@ -16,7 +16,6 @@ if (!require("dplyr")) install.packages("dplyr", update = FALSE, ask = FALSE); l
 if (!require("DT")) install.packages("DT", update = FALSE, ask = FALSE); library(DT)
 if (!require("shinyalert")) install.packages("shinyalert", update = FALSE, ask = FALSE); library(shinyalert)
 if (!require("stringr")) install.packages("stringr", update = FALSE, ask = FALSE); library(stringr)
-if (!require("RMySQL")) install.packages("RMySQL", update = FALSE, ask = FALSE); library(RMySQL)
 if (!require("shinyWidgets")) install.packages("shinyWidgets", update = FALSE, ask = FALSE); library(shinyWidgets)
 if (!require("psych")) install.packages("psych", update = FALSE, ask = FALSE); library(psych)
 if (!require("ggthemes")) install.packages("ggthemes", update = FALSE, ask = FALSE); library(ggthemes)
@@ -50,7 +49,7 @@ source("apps/mod_feedback.R")
 # Define UI for application that draws a histogram
 ui <- bs4Dash::dashboardPage(
   bs4Dash::dashboardHeader(
-    title = tags$a(href='https://www.jingege.wang',
+    title = tags$a(href='https://github.com/WangJin93/PCAS',
                    tags$img(src='logo.png',width="100%"),
                    style = "position: relative; top: 5px;",align="center")
   ),

@@ -350,8 +350,8 @@ server.modules_pancan_corr <- function(input, output, session) {
     },
     content = function(file) {
         pdf(file,  width =  input$width_scatter/70 ,height = input$height_scatter/70)
-        corrplot(plot_func()$r,col=colorRampPalette(c("green","white","red"))(200),p.mat = plot_func()$p,insig = "label_sig",sig.level =c(.001,.01,.05),pch.cex=0.6,pch.col="black",tl.col="black",tl.cex = 0.8)
-        dev.off()
+      print(viz_cor_heatmap(plot_func()$r,plot_func()$p))
+      dev.off()
     }
   )
 }
