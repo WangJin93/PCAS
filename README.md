@@ -6,7 +6,7 @@ You can also install the R package:
 ```R
 remotes::install_github("WangJin93/PCAS")
 ```
-Enter the PCAS \ _ app() function to run the PCAS app, which can be used according to the article (link) of this tool:
+Enter the PCAS\_app() function to run the PCAS app, which can be used according to the article (link) of this tool:
 
 ![](PCAS.png)
 
