@@ -1,15 +1,16 @@
 
-用户可以直接使用如下链接访问PCAS Shinyapp：<https://jingle.shinyapps.io/PCAS/> 
+Users can directly access PCAS Shinyapp using the following link:< https://jingle.shinyapps.io/PCAS/ >
 
-也可以安装该R包：
+You can also install the R package:
 
-remotes::install\_github("WangJin93/PCAS")
-
-输入PCAS\_app()函数运行PCAS app, 该APP的使用参照本工具的文章（链接）：
+```R
+remotes::install_github("WangJin93/PCAS")
+```
+Enter the PCAS \ _ app() function to run the PCAS app, which can be used according to the article (link) of this tool:
 
 ![](PCAS.png)
 
-PCAS包主要函数：
+The main functions of the PCAS package are:
 
 1. **get\_data()：**
 
@@ -204,7 +205,8 @@ cor_pancancer_TIL(df, cor_method = "spearman", TIL_type = c("TIMER"))
 ### **Description**
 Visualizing the different expression of mRNA/protein expression data between Tumor and Normal tissues in CPTAC database.
 ### **Usage**
-```Rviz_TvsN(
+```R
+viz_TvsN(
 
   df,
 
