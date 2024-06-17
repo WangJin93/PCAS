@@ -17,8 +17,9 @@ viz_DEGs_volcano <- function(df,
                     logFC.cut=1,
                     show.top=FALSE,
                     show.labels=NULL){
-
-
+  df$adj.P.Val<- as.numeric(df$adj.P.Val)
+  df$P.Value<- as.numeric(df$P.Value)
+  df$logFC<- as.numeric(df$logFC)
   df$change<-ifelse(df$adj.P.Val<p.cut,ifelse(df$logFC < -logFC.cut,"Down",ifelse(df$logFC > logFC.cut,"Up","No")),"No")
   df<-arrange(df,logFC)
   if (show.top == TRUE){

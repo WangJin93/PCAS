@@ -34,8 +34,8 @@ cor_cancer_genelist <- function(dataset1 = "LUAD_CPTAC_protein",
 
   data2 <- get_expr_data(dataset2, id2)
   data2$dataset<- data2$dataset %>% stringr::str_remove(.,"_protein|_Phospho|_mRNA")
-  data_merge <- merge(data1[intersect(rownames(data1),rownames(data2)),],
-                      data2[intersect(rownames(data1),rownames(data2)),],
+  data_merge <- merge(data1 %>% dplyr::filter(ID %in% intersect(data1$ID,data2$ID)),
+                      data2 %>% dplyr::filter(ID %in% intersect(data1$ID,data2$ID)),
                       by = c("ID","type","dataset"))
 
   data_merge %>%
@@ -50,5 +50,6 @@ cor_cancer_genelist <- function(dataset1 = "LUAD_CPTAC_protein",
   row.names(result)<-NULL
 
   p_df<-list("cor_result" = result,"cor_data"=data_merge)
+  return(p_df)
 }
 

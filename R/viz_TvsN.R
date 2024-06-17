@@ -33,11 +33,12 @@ viz_TvsN <- function(df,df_type = c("single","multi_gene","multi_set"),
     return(NULL)
   }
 
-  df <- df %>% dplyr::filter(type %in% c("Tumor","Normal")) %>% na.omit()
+  df <- df %>% dplyr::filter(type %in% c("Tumor","Normal"))
 
   ##计算每种肿瘤正常和肿瘤组织的样本量和差异分析
   if (df_type == "single"){
     colnames(df)[4] <- "value"
+    df <- df  %>% na.omit()
     df$value <- as.numeric(df$value)
     if (Show.P.value == TRUE) {
       pv <- df %>%
@@ -80,8 +81,9 @@ viz_TvsN <- function(df,df_type = c("single","multi_gene","multi_set"),
   }
   if (df_type == "multi_gene"){
     df <- reshape2::melt(df, measure.vars = colnames(df)[4:(ncol(df))])
-    df$value <- as.numeric(df$value)
 
+    df$value <- as.numeric(df$value)
+    df <- df  %>% na.omit()
     if (Show.P.value == TRUE) {
       pv <- df %>% as.data.frame() %>%
         ggpubr::compare_means(value ~ type, data = ., method = Method, group.by = "variable", symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")),p.adjust.methods="BH")
@@ -123,6 +125,7 @@ viz_TvsN <- function(df,df_type = c("single","multi_gene","multi_set"),
   if (df_type == "multi_set"){
     colnames(df)[4] <- "value"
     df$value <- as.numeric(df$value)
+    df <- df  %>% na.omit()
     if (Show.P.value == TRUE) {
       pv <- df %>%
         ggpubr::compare_means(value ~ type, data = ., method = Method, group.by = "dataset", symnum.args = list(cutpoints = c(0,0.001, 0.01, 0.05, 1), symbols = c( "***", "**", "*", "ns")),p.adjust.methods="BH")
