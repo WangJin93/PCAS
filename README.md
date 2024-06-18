@@ -1,3 +1,9 @@
+Citation: Wang J, Song X, Wei M, Qin L, Zhu Q, Wang S, Liang T, Hu W, Zhu X, Li J. PCAS: An Integrated Tool for Multi-Dimensional Cancer Research Utilizing Clinical Proteomic Tumor Analysis Consortium Data. International Journal of Molecular Sciences. 2024; 25(12):6690. https://doi.org/10.3390/ijms25126690
+        
+        
+        
+        
+
 
 Users can directly access PCAS Shinyapp using the following link: <https://jingle.shinyapps.io/PCAS/>
 
