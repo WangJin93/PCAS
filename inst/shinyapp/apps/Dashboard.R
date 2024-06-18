@@ -1,9 +1,9 @@
 ui.modules_dash <- function(id) {
-  ns <- NS(id) 
+  ns <- NS(id)
   tagList(
     bs4Dash::bs4Jumbotron(
       title = "Welcome to the ProteoCancer Analysis Suite (PCAS)!",
-      lead = HTML("The ProteoCancer Analysis Suite (PCAS) platform takes advantage of the CPTAC database and offers an integrated platform for proteomics, phosphoproteomics, and transcriptomics analysis in cancer research. It includes modules for analyzing individual data sets, such as gene expression, correlation, survival analysis, and clinical information. Additionally, the app allows for multi-dataset analyses across different cancer types, providing a comprehensive view of cancer biology. Advanced features like immune infiltration and drug sensitivity analysis offer insights into the tumor microenvironment. By simplifying complex data analysis, our app enables researchers to advance oncology studies and develop targeted therapies.</br>Install PCAS packages: <b>remotes::install_github('WangJin93/PCAS')</b>, Then execute commands: <b>PCAS::PCAS_app() </b> to run the app locally."),
+      lead = HTML("The ProteoCancer Analysis Suite (PCAS) platform takes advantage of the CPTAC database and offers an integrated platform for proteomics, phosphoproteomics, and transcriptomics analysis in cancer research. It includes modules for analyzing individual data sets, such as gene expression, correlation, survival analysis, and clinical information. Additionally, the app allows for multi-dataset analyses across different cancer types, providing a comprehensive view of cancer biology. Advanced features like immune infiltration and drug sensitivity analysis offer insights into the tumor microenvironment. By simplifying complex data analysis, our app enables researchers to advance oncology studies and develop targeted therapies.</br></br>Install PCAS packages: <b>remotes::install_github('WangJin93/PCAS')</b>, Then execute commands: <b>PCAS::PCAS_app() </b> to run the app locally.</br><b>Citation: </b>Wang J, Song X, Wei M, Qin L, Zhu Q, Wang S, Liang T, Hu W, Zhu X, Li J. PCAS: An Integrated Tool for Multi-Dimensional Cancer Research Utilizing Clinical Proteomic Tumor Analysis Consortium Data. International Journal of Molecular Sciences. 2024; 25(12):6690. https://doi.org/10.3390/ijms25126690"),
       status = "info",
       btnName = "Github source code",
       href = "https://github.com/WangJin93/PCAS"
@@ -35,8 +35,7 @@ ui.modules_dash <- function(id) {
                    href = "https://www.jingege.wang"
                  )
                )
-             ),
-             h4("Citation:")
+             )
       ),
       column(6,
              tags$img(src = 'abstract.png', width = '100%')
