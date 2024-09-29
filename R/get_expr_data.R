@@ -13,6 +13,15 @@
 #' @export
 #'
 get_expr_data <- function(datasets=c("LUAD_CPTAC_protein","LSCC_CPTAC_protein"), genes= c("TP53","TNS1")) {
+  # 创建缓存目录（如果不存在）
+  base_dir <- "data_files"
+  action_dir <- file.path(base_dir, "data_temp")
+  if (!dir.exists(base_dir)) {
+    dir.create(base_dir)
+  }
+  if (!dir.exists(action_dir)) {
+    dir.create(action_dir)
+  }
   if (length(genes)==0){
     return(NULL)
   }else{
@@ -24,6 +33,17 @@ get_expr_data <- function(datasets=c("LUAD_CPTAC_protein","LSCC_CPTAC_protein"),
         ids <- id$row_names
       }else{
         ids <- genes
+      }
+      # 生成基因的哈希值作为文件名的一部分
+      genes_hash <- digest::digest(ids, algo = "md5")
+      cache_file <- file.path(action_dir, paste0(x, "_", genes_hash, ".RData"))
+
+      # 检查缓存文件是否存在
+      if (file.exists(cache_file)) {
+        message("Loading cached data from ", cache_file)
+        load(cache_file)
+        cptac_data <- plyr::rbind.fill(cptac_data, cached_data)
+        next()
       }
       data <- get_data(x,
                        "expression",
@@ -38,15 +58,18 @@ get_expr_data <- function(datasets=c("LUAD_CPTAC_protein","LSCC_CPTAC_protein"),
           colnames(data)[1] <- "row_names"
         }
         row.names(data) <- NULL
-        data<-data%>% tibble::column_to_rownames(var = "row_names")	%>% t() %>% as.data.frame()
-        data$type <- lapply(row.names(data), function(x) strsplit(x,"_")[[1]][length(strsplit(x,"_")[[1]])])%>% as.character()
-        data$ID <- stringr::str_remove(row.names(data),"_Tumor|_Normal|_Other")
+        cached_data <- data %>% tibble::column_to_rownames(var = "row_names") %>% t() %>% as.data.frame()
+
+        cached_data$type <- lapply(row.names(cached_data), function(x) strsplit(x,"_")[[1]][length(strsplit(x,"_")[[1]])])%>% as.character()
+        cached_data$ID <- stringr::str_remove(row.names(cached_data),"_Tumor|_Normal|_Other")
         # data <- tibble::rownames_to_column(data,var = "ID")
         # data <- reshape2::melt(data, measure.vars = genes)
         # data$value <- as.numeric(data$value)
-        data <- data[c("ID","type",colnames(data)[1:(ncol(data)-2)])]
-        data$dataset <- x
-        cptac_data <- plyr::rbind.fill(cptac_data,data)
+        cached_data <- cached_data[c("ID","type",colnames(cached_data)[1:(ncol(cached_data)-2)])]
+        cached_data$dataset <- x
+        # 保存到缓存
+        save(cached_data, file = cache_file)
+        cptac_data <- plyr::rbind.fill(cptac_data,cached_data)
         }
     }
     if (nrow(cptac_data) == 0){
