@@ -1,6 +1,32 @@
 # PCAS 更新说明 / Changelog
 
-## 0.2.1 (2026-09-05)
+## 0.2.2 (2026-09-05)
+
+### 中文更新摘要 / Summary (中文)
+
+修复 Shiny App 中部分表格"下载"按钮只导出当前页而非全部数据的问题：
+
+- 根因：导出按钮虽已配置 `exportOptions = list(modifier = list(page = "all"))`，
+  但对 `server = TRUE`（服务端分页）的 DataTable，DT 的 Buttons 扩展只能导出
+  当前页数据。
+- 处理：将全部带导出按钮的表格改为客户端模式（`server = FALSE`），使
+  `page = "all"` 生效——下载即为全部行（含搜索/筛选后的全部结果）：
+  - DEGs/DEPs 结果表（modules_Cancer_DEGs）
+  - 泛癌相关散点明细表（modules-pancan-corr）
+  - Datasets 目录表（modules_Cancer_expression）
+- 顺带修复：Drug info 页引用不存在的对象 `Drug_info`（应为 `drug_info`），
+  并修正其下载文件名参数。
+
+### English
+- Fixed Shiny-app tables whose "Download table" button exported only the
+  current page instead of all rows. Root cause: with server-side DataTables
+  (`server = TRUE`) the DT Buttons extension cannot honour
+  `modifier = list(page = "all")`; all export-enabled tables now render
+  client-side (`server = FALSE`) so downloads include every (filtered) row.
+- Also fixed the Drug info tab which referenced a non-existent `Drug_info`
+  object (now the bundled `drug_info` data) and its download filename.
+
+
 
 ### 中文更新摘要 / Summary (中文)
 

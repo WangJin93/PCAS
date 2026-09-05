@@ -310,7 +310,7 @@ server.modules_pancan_drug <- function(input, output, session) {
   )
   output$Drug_info <- DT::renderDataTable(server = FALSE, {
     DT::datatable(
-      Drug_info,
+      drug_info,
       rownames = FALSE,
       extensions = c("Buttons"),
       options = list(
@@ -318,7 +318,8 @@ server.modules_pancan_drug <- function(input, output, session) {
         dom = "Bfrtip",
         buttons = list(
           list(
-            extend = "csv", text = "Download table", filename = paste(input$ga_id, "in",input$datasets_text),
+            extend = "csv", text = "Download table",
+            filename = paste0("drug_info_", input$Target.pathway),
             exportOptions = list(
               modifier = list(page = "all")
             )

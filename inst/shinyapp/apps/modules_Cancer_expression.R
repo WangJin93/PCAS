@@ -357,7 +357,7 @@ server.modules_Cancer_expression <- function(input, output, session) {
   })
 
 
-  output$xena_table <- DT::renderDataTable({
+  output$xena_table <- DT::renderDataTable(server = FALSE, {
     dataset_info %>% dplyr::filter(Data.type %in% input$data_type)%>%
       dplyr::filter(Primary.Site %in% input$cohorts_text)%>%
       DT::datatable(

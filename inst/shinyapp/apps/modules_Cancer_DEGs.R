@@ -212,7 +212,7 @@ server.modules_diff_gene <- function(input, output, session) {
         print(p)
         dev.off()
     })
-  output$tbl <- DT::renderDataTable(server = T, {
+  output$tbl <- DT::renderDataTable(server = FALSE, {
     if (input$search_bttn){
       DT::datatable(
         plot_vis()$data,

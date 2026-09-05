@@ -276,7 +276,7 @@ server.modules_pancan_corr <- function(input, output, session) {
                                           viz_corplot(df,colnames(df)[4],colnames(df)[5],method=input$cor_method,x_lab= " exppression",y_lab=" exppression")
 
                                         })
-      output$scatter_corr <- DT::renderDataTable(server = TRUE,{
+      output$scatter_corr <- DT::renderDataTable(server = FALSE,{
         DT::datatable(
           corr_func(),
           rownames = T,
