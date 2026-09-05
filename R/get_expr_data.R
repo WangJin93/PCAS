@@ -9,9 +9,13 @@
 #'   gene symbols are mapped internally through \code{idmap_RNA}; for
 #'   phosphoproteome datasets pass phosphorylation-site ids (e.g.
 #'   \code{"NP_000537.3:s315"}).
-#' @param use_cache Logical; use the on-disk query cache (default TRUE). The
-#'   cache location is controlled by \code{options(PCAS.cache.dir = <path>)};
-#'   set that option to \code{NA}/\code{FALSE} to disable caching entirely.
+#' @param use_cache Logical; use the on-disk query cache (default TRUE).
+#' @param cache_dir Optional custom cache directory. If NULL (default) the
+#'   cache location is resolved from \code{options(PCAS.cache.dir)} and
+#'   otherwise defaults to the per-user cache directory
+#'   (\code{tools::R_user_dir("PCAS", "cache")}, i.e. \code{~/.cache/PCAS} on
+#'   Linux). Set \code{use_cache = FALSE} or
+#'   \code{options(PCAS.cache.dir = NA)} to disable caching entirely.
 #' @return A data.frame with columns \code{ID}, \code{type}, \code{dataset} and
 #'   one column per requested identifier (in the order of \code{genes}).
 #'   Identifiers without measurements in a dataset are kept as all-NA columns so
@@ -26,6 +30,14 @@
 #'   If several mRNA probes map to the same gene symbol they are averaged per
 #'   sample (a message is printed), so a sample never appears twice for the same
 #'   gene.
+#'
+#'   \strong{Caching (same scheme as the GCAS package):} the processed result
+#'   for every dataset is saved locally as
+#'   \code{<cache_dir>/data_temp/<dataset>_<md5(ids)>.RData} and reused for the
+#'   next identical request ("Loading cached data from ..."), so the PCAS server
+#'   is not contacted again for the same data. Cache files do not expire
+#'   automatically; delete the cache directory (or the individual file) to
+#'   force a fresh download.
 #' @examples
 #' \dontrun{
 #' results <- get_expr_data(datasets = "LUAD_CPTAC_mRNA",
@@ -38,7 +50,8 @@
 get_expr_data <- function(datasets = c("LUAD_CPTAC_protein",
                                        "LSCC_CPTAC_protein"),
                           genes = c("TP53", "TNS1"),
-                          use_cache = TRUE) {
+                          use_cache = TRUE,
+                          cache_dir = NULL) {
 
   # ---------------------------------------------------------------------------
   # 1. Validate and normalise user input
@@ -71,7 +84,7 @@ get_expr_data <- function(datasets = c("LUAD_CPTAC_protein",
     }
   }
 
-  cache_dir <- .pcas_cache_dir(use_cache)
+  cache_dir <- .pcas_resolve_cache_dir(use_cache, cache_dir)
 
   .pcas_note("Querying data of identifier ", paste(genes, collapse = ", "),
              " from datasets ", paste(datasets, collapse = ", "), ".")
@@ -125,20 +138,17 @@ get_expr_data <- function(datasets = c("LUAD_CPTAC_protein",
       }
     }
 
-    # -- cache --------------------------------------------------------------
+    # -- cache (GCAS-style: <dataset>_<md5>.RData under <cache>/data_temp) ----
     cache_file <- NULL
     if (!is.null(cache_dir)) {
-      cache_file <- .pcas_cache_file(cache_dir, x, ids, what = "expr")
+      cache_file <- .pcas_cache_file(cache_dir, x, ids, what = "data_temp")
       cache_file <- .pcas_ensure_cache_subdir(cache_file)
     }
     ds_df <- NULL
     if (!is.null(cache_file) && file.exists(cache_file)) {
-      e <- new.env(parent = emptyenv())
-      ok <- tryCatch({load(cache_file, envir = e); TRUE},
-                     error = function(e) FALSE)
-      if (ok && exists("ds_df", envir = e, inherits = FALSE)) {
-        ds_df <- e$ds_df
-        .pcas_note("Loaded cached expression data for dataset ", x, ".")
+      ds_df <- .pcas_load_cache(cache_file)
+      if (!is.null(ds_df)) {
+        .pcas_note("Loading cached data from ", cache_file, ".")
       }
     }
 
@@ -209,12 +219,7 @@ get_expr_data <- function(datasets = c("LUAD_CPTAC_protein",
       ds_df <- ds_df[, c("ID", "type", "dataset", genes), drop = FALSE]
 
       # write cache (best effort; a read-only FS must not abort the query)
-      if (!is.null(cache_file)) {
-        tryCatch(save(ds_df, file = cache_file), error = function(e) {
-          .pcas_note("Could not write cache file ", cache_file,
-                     " (", conditionMessage(e), "); continuing without it.")
-        })
-      }
+      if (!is.null(cache_file)) .pcas_save_cache(ds_df, cache_file)
     }
 
     parts[[x]] <- ds_df

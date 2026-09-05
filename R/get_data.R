@@ -11,8 +11,9 @@
 #' @param genes Character vector of gene symbols / identifiers. Optional for
 #'   \code{action = "DEGs"} and \code{action = "clinic"} (the server ignores it
 #'   for those actions).
-#' @param timeout Request timeout in seconds (default 30).
-#' @param tries Number of attempts before giving up (default 2).
+#' @param timeout Request timeout in seconds (default 60; large DEGs tables can
+#'   occasionally be slow to assemble on the server).
+#' @param tries Number of attempts before giving up (default 3).
 #' @return A \code{data.frame} with the parsed API payload, or \code{NULL} when
 #'   the request failed or no rows were returned (an explanatory message is
 #'   always emitted first).
@@ -33,8 +34,8 @@
 get_data <- function(table = "LUAD_Academia_protein",
                      action = "expression",
                      genes = NULL,
-                     timeout = 30,
-                     tries = 2) {
+                     timeout = 60,
+                     tries = 3) {
   # ---------------------------------------------------------------------------
   # 1. Argument validation (early, with actionable feedback)
   # ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ get_data <- function(table = "LUAD_Academia_protein",
   }
 
   timeout <- as.numeric(timeout)
-  if (is.na(timeout) || timeout <= 0) timeout <- 30
+  if (is.na(timeout) || timeout <= 0) timeout <- 60
   tries <- max(1L, as.integer(tries))
 
   # ---------------------------------------------------------------------------

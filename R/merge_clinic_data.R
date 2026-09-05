@@ -12,6 +12,14 @@
 #'   \code{list(df = <merged data.frame>, summary = <matching/NA summary>)} is
 #'   returned. If FALSE the plain merged data.frame is returned with the summary
 #'   attached as \code{attr(x, "merge_summary")} for backward compatibility.
+#' @param use_cache Logical; use the on-disk cache (default TRUE).
+#' @param cache_dir Optional custom cache directory. If NULL (default) the
+#'   cache location is resolved from \code{options(PCAS.cache.dir)} and
+#'   otherwise defaults to the per-user cache directory
+#'   (\code{tools::R_user_dir("PCAS", "cache")}). The clinical table of a
+#'   cohort is a stable, slowly changing table; it is therefore cached whole
+#'   per cohort as \code{<cache_dir>/clinic_data/<cohort>.rds} (the same idea
+#'   as GCAS caching sample annotations per GSE) and only downloaded once.
 #' @return Either a list with the merged data.frame and a summary, or (when
 #'   \code{return_summary = FALSE}) the merged data.frame alone. Returns
 #'   \code{NULL} with explanatory messages when the clinical table cannot be
@@ -31,7 +39,9 @@
 #' @export
 merge_clinic_data <- function(cohort = "LUAD_APOLLO",
                               data_input,
-                              return_summary = TRUE) {
+                              return_summary = TRUE,
+                              use_cache = TRUE,
+                              cache_dir = NULL) {
   # ---------------------------------------------------------------------------
   # 1. Validate inputs
   # ---------------------------------------------------------------------------
@@ -46,14 +56,31 @@ merge_clinic_data <- function(cohort = "LUAD_APOLLO",
   cohort <- .pcas_strip_dataset(cohort[1L])
 
   # ---------------------------------------------------------------------------
-  # 2. Fetch clinical data
+  # 2. Fetch clinical data (cached per cohort, GCAS sample_info-style)
   # ---------------------------------------------------------------------------
-  clinic <- get_data(cohort, "clinic")
+  cache_dir <- .pcas_resolve_cache_dir(use_cache, cache_dir)
+  clinic_file <- NULL
+  if (!is.null(cache_dir)) {
+    clinic_file <- file.path(cache_dir, "clinic_data", paste0(cohort, ".rds"))
+    clinic_file <- .pcas_ensure_cache_subdir(clinic_file)
+  }
+
+  clinic <- NULL
+  if (!is.null(clinic_file) && file.exists(clinic_file)) {
+    clinic <- .pcas_load_rds(clinic_file)
+    if (!is.null(clinic)) {
+      .pcas_note("Loading cached clinical data from ", clinic_file, ".")
+    }
+  }
   if (is.null(clinic)) {
-    warning("merge_clinic_data(): no clinical data returned for cohort '",
-            cohort, "'. Check the cohort name (e.g. 'LUAD_APOLLO').",
-            call. = FALSE)
-    return(NULL)
+    clinic <- get_data(cohort, "clinic")
+    if (is.null(clinic)) {
+      warning("merge_clinic_data(): no clinical data returned for cohort '",
+              cohort, "'. Check the cohort name (e.g. 'LUAD_APOLLO').",
+              call. = FALSE)
+      return(NULL)
+    }
+    if (!is.null(clinic_file)) .pcas_save_rds(clinic, clinic_file)
   }
   if (!"Cases_Submitter_ID" %in% colnames(clinic)) {
     stop("merge_clinic_data(): the clinical table of cohort '", cohort,

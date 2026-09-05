@@ -23,20 +23,26 @@
   data.frame(ID = id, type = type, stringsAsFactors = FALSE)
 }
 
-#' Cache directory for PCAS queries
+#' Resolve the on-disk cache directory
 #'
-#' Location is controlled with \code{options(PCAS.cache.dir = <path>)}.
-#' Set it to \code{NA} or \code{FALSE} to disable the on-disk cache.
-#' Defaults to a per-user cache directory (R >= 4.0).
+#' Resolution order: explicit \code{cache_dir} argument > option
+#' \code{PCAS.cache.dir} > the per-user cache directory
+#' (\code{tools::R_user_dir("PCAS", "cache")}, i.e. \code{~/.cache/PCAS} on
+#' Linux). Set the option to \code{NA} or \code{FALSE}, or pass
+#' \code{use_cache = FALSE}, to disable caching entirely.
 #' @noRd
-.pcas_cache_dir <- function(use_cache = TRUE) {
+.pcas_resolve_cache_dir <- function(use_cache = TRUE, cache_dir = NULL) {
   if (!isTRUE(use_cache)) return(NULL)
-  cfg <- getOption("PCAS.cache.dir")
-  if (identical(cfg, FALSE) || identical(cfg, NA)) return(NULL)
-  base <- if (is.character(cfg) && length(cfg) == 1L && nzchar(cfg)) {
-    cfg
+  if (is.character(cache_dir) && length(cache_dir) == 1L && nzchar(cache_dir)) {
+    base <- cache_dir
   } else {
-    tools::R_user_dir("PCAS", which = "cache")
+    cfg <- getOption("PCAS.cache.dir")
+    if (identical(cfg, FALSE) || identical(cfg, NA)) return(NULL)
+    base <- if (is.character(cfg) && length(cfg) == 1L && nzchar(cfg)) {
+      cfg
+    } else {
+      tools::R_user_dir("PCAS", which = "cache")
+    }
   }
   ok <- tryCatch({
     dir.create(base, recursive = TRUE, showWarnings = FALSE)
@@ -50,12 +56,12 @@
   base
 }
 
-#' Compute a stable cache file name for one dataset/query
+#' Compute the cache file name for one dataset/query (GCAS-style:
+#' <dataset>_<md5 of ids>.RData under the <what> sub-directory)
 #' @noRd
-.pcas_cache_file <- function(cache_dir, dataset, ids, what = "expr") {
+.pcas_cache_file <- function(cache_dir, dataset, ids, what = "data_temp") {
   h <- digest::digest(sort(unique(ids)), algo = "md5")
-  month <- format(Sys.Date(), "%Y-%m")   # invalidates stale DB content monthly
-  file.path(cache_dir, what, paste0(dataset, "_", h, "_", month, ".RData"))
+  file.path(cache_dir, what, paste0(dataset, "_", h, ".RData"))
 }
 
 #' Ensure a directory exists for a cache file path; returns path or NULL
@@ -63,6 +69,52 @@
 .pcas_ensure_cache_subdir <- function(file) {
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
   if (dir.exists(dirname(file))) file else NULL
+}
+
+#' Load a .RData cache file written by .pcas_save_cache() (object name
+#' `cached_data`, as in the GCAS package); returns NULL on any failure.
+#' @noRd
+.pcas_load_cache <- function(file) {
+  e <- new.env(parent = emptyenv())
+  ok <- tryCatch({
+    load(file, envir = e)
+    exists("cached_data", envir = e, inherits = FALSE)
+  }, error = function(e2) FALSE)
+  if (ok) e$cached_data else NULL
+}
+
+#' Save an object to a .RData cache file under the name `cached_data`;
+#' best effort - never throws.
+#' @noRd
+.pcas_save_cache <- function(obj, file) {
+  cached_data <- obj
+  tryCatch({
+    save(cached_data, file = file)
+    TRUE
+  }, error = function(e) {
+    .pcas_note("Could not write cache file ", file,
+               " (", conditionMessage(e), "); continuing without it.")
+    FALSE
+  })
+}
+
+#' Load a single-object .rds cache file (best effort)
+#' @noRd
+.pcas_load_rds <- function(file) {
+  tryCatch(readRDS(file), error = function(e) NULL)
+}
+
+#' Save a single object as .rds (best effort)
+#' @noRd
+.pcas_save_rds <- function(obj, file) {
+  tryCatch({
+    saveRDS(obj, file)
+    TRUE
+  }, error = function(e) {
+    .pcas_note("Could not write cache file ", file,
+               " (", conditionMessage(e), "); continuing without it.")
+    FALSE
+  })
 }
 
 #' Cast columns to numeric and report how many NAs are introduced

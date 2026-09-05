@@ -7,7 +7,8 @@
 get_expr_data(
   datasets = c("LUAD_CPTAC_protein", "LSCC_CPTAC_protein"),
   genes = c("TP53", "TNS1"),
-  use_cache = TRUE
+  use_cache = TRUE,
+  cache_dir = NULL
 )
 }
 \arguments{
@@ -19,9 +20,14 @@ gene symbols are mapped internally through \code{idmap_RNA}; for
 phosphoproteome datasets pass phosphorylation-site ids (e.g.
 \code{"NP_000537.3:s315"}).}
 
-\item{use_cache}{Logical; use the on-disk query cache (default TRUE). The
-cache location is controlled by \code{options(PCAS.cache.dir = <path>)};
-set that option to \code{NA}/\code{FALSE} to disable caching entirely.}
+\item{use_cache}{Logical; use the on-disk query cache (default TRUE).}
+
+\item{cache_dir}{Optional custom cache directory. If NULL (default) the
+cache location is resolved from \code{options(PCAS.cache.dir)} and
+otherwise defaults to the per-user cache directory
+(\code{tools::R_user_dir("PCAS", "cache")}, i.e. \code{~/.cache/PCAS} on
+Linux). Set \code{use_cache = FALSE} or
+\code{options(PCAS.cache.dir = NA)} to disable caching entirely.}
 }
 \value{
 A data.frame with columns \code{ID}, \code{type}, \code{dataset} and
@@ -43,6 +49,14 @@ The return value carries an attribute \code{availability}, a
   If several mRNA probes map to the same gene symbol they are averaged per
   sample (a message is printed), so a sample never appears twice for the same
   gene.
+
+  \strong{Caching (same scheme as the GCAS package):} the processed result
+  for every dataset is saved locally as
+  \code{<cache_dir>/data_temp/<dataset>_<md5(ids)>.RData} and reused for the
+  next identical request ("Loading cached data from ..."), so the PCAS server
+  is not contacted again for the same data. Cache files do not expire
+  automatically; delete the cache directory (or the individual file) to
+  force a fresh download.
 }
 \examples{
 \dontrun{

@@ -4,7 +4,13 @@
 \alias{merge_clinic_data}
 \title{Merge clinic data}
 \usage{
-merge_clinic_data(cohort = "LUAD_APOLLO", data_input, return_summary = TRUE)
+merge_clinic_data(
+  cohort = "LUAD_APOLLO",
+  data_input,
+  return_summary = TRUE,
+  use_cache = TRUE,
+  cache_dir = NULL
+)
 }
 \arguments{
 \item{cohort}{Data cohort, for example \code{"LUAD_APOLLO"}, \code{"LUAD_CPTAC"}
@@ -17,6 +23,16 @@ present, is stripped automatically).}
 \code{list(df = <merged data.frame>, summary = <matching/NA summary>)} is
 returned. If FALSE the plain merged data.frame is returned with the summary
 attached as \code{attr(x, "merge_summary")} for backward compatibility.}
+
+\item{use_cache}{Logical; use the on-disk cache (default TRUE).}
+
+\item{cache_dir}{Optional custom cache directory. If NULL (default) the
+cache location is resolved from \code{options(PCAS.cache.dir)} and
+otherwise defaults to the per-user cache directory
+(\code{tools::R_user_dir("PCAS", "cache")}). The clinical table of a
+cohort is a stable, slowly changing table; it is therefore cached whole
+per cohort as \code{<cache_dir>/clinic_data/<cohort>.rds} (the same idea
+as GCAS caching sample annotations per GSE) and only downloaded once.}
 }
 \value{
 Either a list with the merged data.frame and a summary, or (when

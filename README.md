@@ -346,11 +346,21 @@ See [NEWS.md](NEWS.md) for the changelog of every release.
 
 ## Notes & configuration
 
-- **Caching**: all query functions cache API responses on disk. The cache
-  directory defaults to the per-user R cache
-  (`tools::R_user_dir("PCAS", "cache")`) and can be changed or disabled with
-  `options(PCAS.cache.dir = <path>)` — set it to `NA` or `FALSE` to disable
-  caching.
+- **Caching (GCAS-style, on by default)**: to avoid requesting the same data
+  repeatedly, every query function stores its result locally and reuses it when
+  the identical data is requested again:
+  - `get_expr_data()` → `<cache>/data_temp/<dataset>_<md5(ids)>.RData`
+  - `get_DEGs_result()` → `<cache>/DEG_results/<table>.RData`
+  - `merge_clinic_data()` → `<cache>/clinic_data/<cohort>.rds` (whole clinical
+    table per cohort, like GCAS caches sample annotations per GSE)
+  The cache directory defaults to the per-user R cache
+  (`tools::R_user_dir("PCAS", "cache")`, i.e. `~/.cache/PCAS` on Linux); pass
+  `cache_dir = <path>` to any of the functions above to use a custom location,
+  or set `options(PCAS.cache.dir = <path>)` globally. Cache files never expire
+  automatically (as in GCAS); delete the cache directory (or the specific
+  file) to force a fresh download, or pass `use_cache = FALSE` /
+  `options(PCAS.cache.dir = NA)` to disable caching for a single call / a whole
+  session.
 - **Missing-data feedback**: `get_expr_data()` keeps every requested identifier
   as a column (all-NA when a dataset does not measure it), reports which
   identifiers/datasets were skipped, and attaches an availability table as

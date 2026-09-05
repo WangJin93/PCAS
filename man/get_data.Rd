@@ -8,8 +8,8 @@ get_data(
   table = "LUAD_Academia_protein",
   action = "expression",
   genes = NULL,
-  timeout = 30,
-  tries = 2
+  timeout = 60,
+  tries = 3
 )
 }
 \arguments{
@@ -24,9 +24,10 @@ get_data(
 \code{action = "DEGs"} and \code{action = "clinic"} (the server ignores it
 for those actions).}
 
-\item{timeout}{Request timeout in seconds (default 30).}
+\item{timeout}{Request timeout in seconds (default 60; large DEGs tables can
+occasionally be slow to assemble on the server).}
 
-\item{tries}{Number of attempts before giving up (default 2).}
+\item{tries}{Number of attempts before giving up (default 3).}
 }
 \value{
 A \code{data.frame} with the parsed API payload, or \code{NULL} when

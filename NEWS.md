@@ -1,6 +1,40 @@
 # PCAS 更新说明 / Changelog
 
-## 0.2.0 (2026-09-05)
+## 0.2.1 (2026-09-05)
+
+### 中文更新摘要 / Summary (中文)
+
+本地缓存升级，对齐 GCAS 包的缓存逻辑（`user_cache_dir` + 命中即读本地、不再请求服务器）：
+
+1. **表达式数据** `get_expr_data()`：每个数据集的处理结果保存为
+   `~/.cache/PCAS/data_temp/<dataset>_<md5(ids)>.RData`，相同请求再次调用时直接
+   读缓存（提示 `Loading cached data from ...`），不访问服务器；新增
+   `cache_dir` 参数可自定义缓存位置。
+2. **DEG 结果** `get_DEGs_result()`：按表缓存
+   `~/.cache/PCAS/DEG_results/<table>.RData`，同样命中即读。
+3. **临床表** `merge_clinic_data()`：临床表是低频变化的整表，按队列缓存为
+   `~/.cache/PCAS/clinic_data/<cohort>.rds`（与 GCAS 缓存每套 GSE 的样本注释
+   `sample_info/<GSE>.rds` 思路一致），首次下载后不再重复请求。
+4. 缓存默认不自动过期（与 GCAS 一致）；如需强制刷新：删除缓存目录
+   （Linux 为 `~/.cache/PCAS`）或删除对应文件，也可 `options(PCAS.cache.dir = NA)`
+   或 `use_cache = FALSE` 临时关闭缓存。
+5. 新增缓存专项测试 `tests/cache_tests.R`，验证第二次相同请求零网络调用。
+
+### English
+- Local caching now follows the GCAS package scheme and avoids re-querying the
+  server for identical data:
+  - `get_expr_data()` caches per dataset as
+    `<cache>/data_temp/<dataset>_<md5(ids)>.RData` (new `cache_dir` argument);
+  - `get_DEGs_result()` caches per table as `<cache>/DEG_results/<table>.RData`;
+  - `merge_clinic_data()` caches the whole clinical table per cohort as
+    `<cache>/clinic_data/<cohort>.rds` (same idea as GCAS `sample_info/`).
+- Cache files never expire automatically (as in GCAS); delete the cache
+  directory or pass `use_cache = FALSE` /
+  `options(PCAS.cache.dir = NA)` to refresh/disable.
+- New `tests/cache_tests.R` asserts that a repeated query performs zero network
+  requests.
+
+
 
 本版本是一次系统性的代码加固发布：在保持全部 14 个导出函数接口可用（并已同步适配
 Shiny App）的前提下，修复了多个正确性 bug，全面补齐"缺失数据"的识别、记录与用户

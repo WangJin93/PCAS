@@ -7,6 +7,12 @@
 #'   \code{dataset_info$Abbre} to list all datasets.
 #' @param method One of \code{"t.test"} or \code{"limma"}.
 #' @param use_cache Logical; use the on-disk query cache (default TRUE).
+#' @param cache_dir Optional custom cache directory. If NULL (default) the
+#'   cache location is resolved from \code{options(PCAS.cache.dir)} and
+#'   otherwise defaults to the per-user cache directory
+#'   (\code{tools::R_user_dir("PCAS", "cache")}). DEG results are stored per
+#'   table as \code{<cache_dir>/DEG_results/<table>.RData} and reused on the
+#'   next identical request (GCAS-style local caching).
 #' @return A data.frame of differential expression results with at least the
 #'   columns \code{Symbol}, \code{logFC}, \code{P.Value} and
 #'   \code{adj.P.Val}, or \code{NULL} when the dataset is unknown or the server
@@ -20,7 +26,8 @@
 #' @export
 get_DEGs_result <- function(dataset = "LUAD_CPTAC_protein",
                             method = "t.test",
-                            use_cache = TRUE) {
+                            use_cache = TRUE,
+                            cache_dir = NULL) {
   method <- match.arg(method, c("t.test", "limma"))
 
   if (!is.character(dataset) || length(dataset) != 1L || !nzchar(dataset)) {
@@ -41,21 +48,18 @@ get_DEGs_result <- function(dataset = "LUAD_CPTAC_protein",
 
   table <- paste0(dataset, ifelse(method == "limma", "_limma", "_ttest"))
 
+  cache_dir  <- .pcas_resolve_cache_dir(use_cache, cache_dir)
   cache_file <- NULL
-  cache_dir  <- .pcas_cache_dir(use_cache)
   if (!is.null(cache_dir)) {
-    cache_file <- .pcas_cache_file(cache_dir, table, "DEGs", what = "DEGs")
+    cache_file <- file.path(cache_dir, "DEG_results", paste0(table, ".RData"))
     cache_file <- .pcas_ensure_cache_subdir(cache_file)
   }
 
   results <- NULL
   if (!is.null(cache_file) && file.exists(cache_file)) {
-    e <- new.env(parent = emptyenv())
-    ok <- tryCatch({load(cache_file, envir = e); TRUE},
-                   error = function(e) FALSE)
-    if (ok && exists("results", envir = e, inherits = FALSE)) {
-      results <- e$results
-      .pcas_note("Loaded cached DEGs results for ", table, ".")
+    results <- .pcas_load_cache(cache_file)
+    if (!is.null(results)) {
+      .pcas_note("Loading cached data from ", cache_file, ".")
     }
   }
 
@@ -104,12 +108,7 @@ get_DEGs_result <- function(dataset = "LUAD_CPTAC_protein",
       return(NULL)
     }
 
-    if (!is.null(cache_file)) {
-      tryCatch(save(results, file = cache_file), error = function(e) {
-        .pcas_note("Could not write cache file ", cache_file,
-                   " (", conditionMessage(e), "); continuing without it.")
-      })
-    }
+    if (!is.null(cache_file)) .pcas_save_cache(results, cache_file)
   }
 
   attr(results, "dataset") <- dataset

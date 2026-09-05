@@ -7,7 +7,8 @@
 get_DEGs_result(
   dataset = "LUAD_CPTAC_protein",
   method = "t.test",
-  use_cache = TRUE
+  use_cache = TRUE,
+  cache_dir = NULL
 )
 }
 \arguments{
@@ -17,6 +18,13 @@ get_DEGs_result(
 \item{method}{One of \code{"t.test"} or \code{"limma"}.}
 
 \item{use_cache}{Logical; use the on-disk query cache (default TRUE).}
+
+\item{cache_dir}{Optional custom cache directory. If NULL (default) the
+cache location is resolved from \code{options(PCAS.cache.dir)} and
+otherwise defaults to the per-user cache directory
+(\code{tools::R_user_dir("PCAS", "cache")}). DEG results are stored per
+table as \code{<cache_dir>/DEG_results/<table>.RData} and reused on the
+next identical request (GCAS-style local caching).}
 }
 \value{
 A data.frame of differential expression results with at least the
