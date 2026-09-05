@@ -2,7 +2,7 @@
 % Please edit documentation in R/cor_cancer_genelist.R
 \name{cor_cancer_genelist}
 \alias{cor_cancer_genelist}
-\title{Perform correlation analysis}
+\title{Perform single-cohort correlation analysis}
 \usage{
 cor_cancer_genelist(
   dataset1 = "LUAD_CPTAC_protein",
@@ -10,32 +10,53 @@ cor_cancer_genelist(
   dataset2 = "LUAD_CPTAC_mRNA",
   id2 = c("TNS1", "TP53"),
   sample_type = c("Tumor", "Normal"),
-  cor_method = "pearson"
+  cor_method = "pearson",
+  min_n = 4
 )
 }
 \arguments{
-\item{dataset1}{Dataset name. Use 'dataset$Abbre' to get all datasets.}
+\item{dataset1}{Dataset name of the first (target) identifier. Use
+\code{dataset_info$Abbre} to list all datasets.}
 
-\item{id1}{Gene symbol, you can input one gene symbols.}
+\item{id1}{Single gene symbol or phosphosite id of \code{dataset1}.}
 
-\item{dataset2}{Dataset name. Use 'dataset$Abbre' to get all datasets.}
+\item{dataset2}{Dataset name of the second (feature) identifiers.}
 
-\item{id2}{Gene symbols, you can input one or multiple symbols.}
+\item{id2}{One or several gene symbols / phosphosite ids of
+\code{dataset2}.}
 
-\item{sample_type}{Sample type used for correlation analysis, default all types: c("Tumor", "Normal").}
+\item{sample_type}{Sample types used, default \code{c("Tumor", "Normal")}.}
 
-\item{cor_method}{cor_method for correlation analysis, default "pearson".}
+\item{cor_method}{Correlation method, \code{"pearson"} or \code{"spearman"}.}
+
+\item{min_n}{Minimum number of shared samples to compute a correlation.}
+}
+\value{
+A list with elements
+  \describe{
+    \item{\code{cor_result}}{data.frame with columns \code{Symbol},
+      \code{Correlation}, \code{P value} and \code{n} — one row per entry of
+      \code{id2} (same order, missing features are reported and stay NA).}
+    \item{\code{cor_data}}{the merged long-format data used for the test
+      (columns ID/type/dataset/target/features), ready for scatter plots.}
+    \item{\code{n}}{vector of pairwise-complete sample sizes per feature.}
+    \item{\code{summary}}{matching and missingness report.}
+  }
+  Returns \code{NULL} (with messages) when no data could be fetched or
+  matched.
 }
 \description{
-Perform correlation analysis of the mRNA/protein expression data in CPTAC database.
+Correlate one identifier (gene / phosphosite) of one dataset with one or
+several identifiers of a second dataset (protein, mRNA or phospho table of
+the same cohort), on the samples shared by both tables.
 }
 \examples{
 \dontrun{
-results <- correlation_analysis(dataset1 = "LUAD_CPTAC_protein",
-                                id1 = "STAT3",
-                                dataset2 = "LUAD_CPTAC_Phospho",
-                                id2 = c("NP_000499.1:s549","NP_000499.1:s551","TP503"),
-                                sample_type = c("Tumor","Normal"),
-                                cor_method = "pearson")
+results <- cor_cancer_genelist(dataset1 = "LUAD_CPTAC_protein",
+                               id1 = "STAT3",
+                               dataset2 = "LUAD_CPTAC_mRNA",
+                               id2 = c("TNS1", "TP53"),
+                               sample_type = c("Tumor", "Normal"),
+                               cor_method = "pearson")
 }
 }

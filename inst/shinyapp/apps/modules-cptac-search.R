@@ -137,6 +137,13 @@ server.modules_pancptac_dist <- function(input, output, session) {
       }
       df <- get_expr_data(datasets=input$datasets_text,
                            genes = Pancan_search)
+      if (is.null(df)) {
+        showModal(modalDialog(
+          title = "Message", easyClose = TRUE,
+          "No expression data was returned for the requested gene. Please check the gene symbol / phosphorylation site."
+        ))
+        return(NULL)
+      }
       p <- viz_TvsN(df,df_type = "multi_set",
         Method =  input$method,
         Show.P.value = input$pdist_show_p_value,
@@ -145,6 +152,7 @@ server.modules_pancptac_dist <- function(input, output, session) {
         Show.n.location =input$show_n_position,
         values = colors()
       )
+      if (is.null(p)) return(NULL)
         p <- p+ ylab(ifelse(input$data_type == "Phosphoproteome", Pancan_search,paste0(input$Pancan_search, " expression")))
 
     }
@@ -160,6 +168,7 @@ server.modules_pancptac_dist <- function(input, output, session) {
   output$gene_pancan_dist <- renderPlot(width = width_scatter,
                                         height = height_scatter,{
     w$show() # Waiter add-ins
+    req(plot_func())
     plot_func() + ggplot2::theme(
         plot.margin = margin(t = 0,
                              r = 0,
@@ -174,7 +183,9 @@ server.modules_pancptac_dist <- function(input, output, session) {
       paste0(input$Pancan_search,  "_pancan_CPTAC.pdf")
     },
     content = function(file) {
-      p<- plot_func() + ggplot2::theme(
+      p <- plot_func()
+      if (is.null(p)) return(NULL)
+      p<- p + ggplot2::theme(
         plot.margin = margin(t = 0,
                              r = 0,
                              b = 50,
@@ -195,6 +206,7 @@ server.modules_pancptac_dist <- function(input, output, session) {
   })
 
   output$tbl <- DT::renderDataTable(server = FALSE, {
+    req(plot_func())
     DT::datatable(
       plot_func()$data,
       rownames = T,

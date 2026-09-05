@@ -657,12 +657,24 @@ server.modules_Cancer_expression <- function(input, output, session) {
       return(NULL)
     }
     dd <- merge_clinic_data(stringr::str_remove(input$datasets_text,"_Phospho|_protein|_mRNA"),data_select)
+    if (is.null(dd)) {
+      sendSweetAlert(
+        session,
+        title = "No clinical data",
+        text = paste0("No clinical data could be merged for this cohort. ",
+                      "The expression data may contain no tumour samples, or ",
+                      "the cohort has no clinical table on the PCAS server."),
+        type = "warning"
+      )
+      return(NULL)
+    }
     return(dd)
   })
 
   output$ga_stage_data <- DT::renderDataTable(server = FALSE, {
+    req(clinic_merge())
     DT::datatable(
-      clinic_merge(),
+      clinic_merge()$df,
       rownames = FALSE,
       extensions = c("Buttons"),
       options = list(
@@ -681,16 +693,20 @@ server.modules_Cancer_expression <- function(input, output, session) {
     )
   })
   observeEvent(input$ga_stage_submit,{
+    dd <- clinic_merge()
+    if (is.null(dd)) return(NULL)
     updateSelectInput(session, "feather",
                       label = "Select clinic feather to plot",
-                      choices =colnames(clinic_merge())[-1:-4],selected = "Gender"
+                      choices =colnames(dd$df)[-1:-4],selected = "Gender"
                       )
   })
 
   observeEvent({input$feather
     input$iscont},{
     if ( input$iscont ==T){
-      vv <- clinic_merge() %>% .[,input$feather] %>% as.numeric() %>% na.omit()
+      dd <- clinic_merge()
+      req(dd)
+      vv <- dd$df %>% .[,input$feather] %>% as.numeric() %>% na.omit()
       print(vv)
       updateNumericInput(session,
                          "cont.cut",
@@ -704,9 +720,10 @@ server.modules_Cancer_expression <- function(input, output, session) {
  output$ga_stage_output <- renderPlot(width = width_stage,
                                       height = height_stage,
                                        {
+                                           req(clinic_merge())
                                            w$show() # Waiter add-ins
 
-                                           stage_plot(clinic_merge(),input$feather,is.cont = input$iscont,cont.cut = input$cont.cut)[["p"]]+
+                                           stage_plot(clinic_merge()$df,input$feather,is.cont = input$iscont,cont.cut = input$cont.cut)[["p"]]+
                                              ggplot2::theme(
                                                axis.text.x = element_text(size = 20),
                                                axis.text.y = element_text(size = 20),
@@ -724,7 +741,9 @@ server.modules_Cancer_expression <- function(input, output, session) {
      paste(input$ga_id, "_",input$feather,"_",input$datasets_text,".pdf")
    },
    content = function(file) {
-     p <-   stage_plot(clinic_merge(),input$feather,is.cont = input$iscont,cont.cut = input$cont.cut)[["p"]]+
+     dd <- clinic_merge()
+     if (is.null(dd)) return(NULL)
+     p <-   stage_plot(dd$df,input$feather,is.cont = input$iscont,cont.cut = input$cont.cut)[["p"]]+
        ggplot2::theme(
          axis.text.x = element_text(size = 20),
          axis.text.y = element_text(size = 20),

@@ -2,24 +2,42 @@
 % Please edit documentation in R/cor_pancancer_TIL.R
 \name{cor_pancancer_TIL}
 \alias{cor_pancancer_TIL}
-\title{Correlation analysis of immune cells infiltration}
+\title{Correlation analysis of immune cell infiltration}
 \usage{
-cor_pancancer_TIL(df, cor_method = "spearman", TIL_type = c("TIMER"))
+cor_pancancer_TIL(df, cor_method = "spearman", TIL_type = "TIMER", min_n = 4)
 }
 \arguments{
-\item{df}{The expression data of the target gene in multiple datasets, obtained by the get_expr_data() function.}
+\item{df}{The expression data of the target gene in multiple datasets,
+obtained by \code{\link{get_expr_data}()}. Only the first expression
+column is used as the target (a message is printed if more are supplied).}
 
-\item{cor_method}{Method for correlation analysis, default "pearson".}
+\item{cor_method}{Correlation method, \code{"pearson"} or \code{"spearman"}
+(default \code{"spearman"}).}
 
-\item{TIL_type}{Algorithm for calculating immune cell infiltration, default "TIMER".}
+\item{TIL_type}{Algorithm(s) used to derive the infiltration scores, e.g.
+\code{"TIMER"}, \code{"MCPcounter"}, \code{"EPIC"} ... Use
+\code{unique(TIL_map$algorithm)} for all valid values.}
+
+\item{min_n}{Minimum number of samples per dataset to run the correlation
+(default 4).}
+}
+\value{
+A list with elements \code{r}, \code{p}, \code{n} (dataset x cell
+  type matrices of correlation, p-value and pairwise-complete sample size),
+  \code{sss} (per-dataset data.frames for scatter plots) and \code{summary}.
+  \code{NULL} with an explanatory message when the algorithm is invalid or
+  nothing can be merged. Missing cells stay NA (never removed).
 }
 \description{
-Calculate the correlation between target gene expression and immune cells infiltration in multiple datasets.
+Calculate the correlation between target gene expression and immune cell
+infiltration (tumour samples only) in multiple datasets, dataset by dataset.
 }
 \examples{
 \dontrun{
-dataset <- c("CCRCC_CPTAC_protein","GBM_CPTAC_protein","HNSCC_CPTAC_protein","LSCC_CPTAC_protein","LUAD_CPTAC_protein","PDAC_CPTAC_protein","UCEC_CPTAC2_protein","UCEC_CPTAC1_protein")
-df <- get_expr_data(genes = "TNS1",datasets = dataset)
-result <- cor_pancancer_TIL(df,Target.pathway = c("Cell cycle"))
+dataset <- c("CCRCC_CPTAC_protein","GBM_CPTAC_protein","HNSCC_CPTAC_protein",
+             "LSCC_CPTAC_protein","LUAD_CPTAC_protein","PDAC_CPTAC_protein",
+             "UCEC_CPTAC2_protein","UCEC_CPTAC1_protein")
+df <- get_expr_data(genes = "TNS1", datasets = dataset)
+result <- cor_pancancer_TIL(df, TIL_type = "TIMER")
 }
 }

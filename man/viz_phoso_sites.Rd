@@ -2,21 +2,35 @@
 % Please edit documentation in R/viz_phoso_sites.R
 \name{viz_phoso_sites}
 \alias{viz_phoso_sites}
-\title{Phosphorylation site information}
+\title{Phosphorylation site visualisation on a protein diagram}
 \usage{
 viz_phoso_sites(gene = "YTHDC2", phoso_infoDB = "CPTAC")
 }
 \arguments{
-\item{gene}{Gene/protein symbol.}
+\item{gene}{Gene/protein symbol, e.g. \code{"TNS1"}.}
 
-\item{phoso_infoDB}{Database for extracting phosphorylation site information. Default "CPTAC".}
+\item{phoso_infoDB}{One of \code{"CPTAC"} (default) or \code{"UniProt"}.}
+}
+\value{
+A ggplot object. The plotted site table (if any) is attached as
+  \code{attr(p, "sites")} for export/verification. \code{NULL} (with an
+  explanatory message) is returned when the gene cannot be mapped or the
+  UniProt network call fails.
 }
 \description{
-Query phosphorylation site information of target proteins based on CPTAC database phosphorylation proteomics data or UniProt database.
+Draw the domain structure of a protein (via the UniProt features API,
+through \pkg{drawProteins}) and overlay its phosphorylation sites. Sites are
+taken either from the CPTAC phosphoproteomics table (\code{idmap_protein},
+default) or from the UniProt features themselves.
+}
+\details{
+Combined CPTAC site identifiers such as \code{NP_000025.1:s218y223t227}
+  are parsed into all of their sites (s218, y223, t227), not only the last
+  one.
 }
 \examples{
 \dontrun{
 viz_phoso_sites("TNS1")
-viz_phoso_sites("YTHDC2",phoso_infoDB= "UniProt")
+viz_phoso_sites("YTHDC2", phoso_infoDB = "UniProt")
 }
 }

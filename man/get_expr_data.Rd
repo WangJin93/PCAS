@@ -6,21 +6,50 @@
 \usage{
 get_expr_data(
   datasets = c("LUAD_CPTAC_protein", "LSCC_CPTAC_protein"),
-  genes = c("TP53", "TNS1")
+  genes = c("TP53", "TNS1"),
+  use_cache = TRUE
 )
 }
 \arguments{
-\item{datasets}{Dataset names, you can input one or multiple datasets. Use 'dataset$Abbre' to get all datasets.}
+\item{datasets}{Dataset names, you can input one or multiple datasets. Use
+\code{dataset_info$Abbre} to get all datasets.}
 
-\item{genes}{Gene symbols, you can input one or multiple symbols.}
+\item{genes}{Gene symbols / identifiers, one or multiple. For mRNA datasets,
+gene symbols are mapped internally through \code{idmap_RNA}; for
+phosphoproteome datasets pass phosphorylation-site ids (e.g.
+\code{"NP_000537.3:s315"}).}
+
+\item{use_cache}{Logical; use the on-disk query cache (default TRUE). The
+cache location is controlled by \code{options(PCAS.cache.dir = <path>)};
+set that option to \code{NA}/\code{FALSE} to disable caching entirely.}
+}
+\value{
+A data.frame with columns \code{ID}, \code{type}, \code{dataset} and
+  one column per requested identifier (in the order of \code{genes}).
+  Identifiers without measurements in a dataset are kept as all-NA columns so
+  that downstream code never silently loses them. When no dataset returns any
+  row, \code{NULL} is returned (with messages explaining why).
 }
 \description{
-Get the mRNA/protein expression data in CPTAC database.
+Get the mRNA/protein/phosphosite expression data of one or several
+identifiers in one or several CPTAC datasets.
+}
+\details{
+The return value carries an attribute \code{availability}, a
+  \code{data.frame} with one row per \code{dataset x gene} combination giving
+  \code{present} (measured or not) and \code{n_valid} (number of samples with
+  a value). Read it with \code{attr(res, "availability")}.
+
+  If several mRNA probes map to the same gene symbol they are averaged per
+  sample (a message is printed), so a sample never appears twice for the same
+  gene.
 }
 \examples{
 \dontrun{
-results <- get_expr_data(datasets = "LUAD_CPTAC_mRNA", genes = c("GAPDH","TNS1"))
-results <- get_expr_data(datasets = c("LUAD_CPTAC_protein","LSCC_CPTAC_protein"), genes = "GAPDH")
-results <- get_expr_data(datasets = c("CCRCC_CPTAC_mRNA","GBM_CPTAC_mRNA","HNSCC_CPTAC_mRNA","LSCC_CPTAC_mRNA","LUAD_CPTAC_mRNA","PDAC_CPTAC_mRNA","UCEC_CPTAC2_mRNA","UCEC_CPTAC1_mRNA"), genes = c("SIRPA","CTLA4","TIGIT","LAG3","VSIR","LILRB2","SIGLEC7","HAVCR2","LILRB4","PDCD1","BTLA"))
+results <- get_expr_data(datasets = "LUAD_CPTAC_mRNA",
+                         genes = c("GAPDH", "TNS1"))
+results <- get_expr_data(datasets = c("LUAD_CPTAC_protein",
+                                       "LSCC_CPTAC_protein"),
+                         genes = "GAPDH")
 }
 }

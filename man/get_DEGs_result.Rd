@@ -4,18 +4,35 @@
 \alias{get_DEGs_result}
 \title{Get DEGs results}
 \usage{
-get_DEGs_result(dataset = "LUAD_CPTAC_protein", method = "t.test")
+get_DEGs_result(
+  dataset = "LUAD_CPTAC_protein",
+  method = "t.test",
+  use_cache = TRUE
+)
 }
 \arguments{
-\item{dataset}{Use dataset$Abbre to get all tables.}
+\item{dataset}{Dataset abbreviation, e.g. \code{"LUAD_CPTAC_protein"}. Use
+\code{dataset_info$Abbre} to list all datasets.}
 
-\item{method}{"limma" or "t.test".}
+\item{method}{One of \code{"t.test"} or \code{"limma"}.}
+
+\item{use_cache}{Logical; use the on-disk query cache (default TRUE).}
+}
+\value{
+A data.frame of differential expression results with at least the
+  columns \code{Symbol}, \code{logFC}, \code{P.Value} and
+  \code{adj.P.Val}, or \code{NULL} when the dataset is unknown or the server
+  returned no rows (messages/warnings explain why). The returned object
+  carries \code{attr(x, "dataset")} and \code{attr(x, "method")}.
 }
 \description{
-Get the results of different expression analysis between tumor and normal samples in CPTAC datasets.
+Get the results of differential expression analysis between tumour and
+normal samples in a CPTAC dataset (pre-computed with limma or t-test on the
+PCAS server).
 }
 \examples{
 \dontrun{
 results <- get_DEGs_result(dataset = "LUAD_CPTAC_protein", method = "limma")
+results <- get_DEGs_result(dataset = "LUAD_CPTAC_mRNA", method = "t.test")
 }
 }

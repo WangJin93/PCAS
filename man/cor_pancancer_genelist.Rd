@@ -2,33 +2,54 @@
 % Please edit documentation in R/cor_pancancer_genelist.R
 \name{cor_pancancer_genelist}
 \alias{cor_pancancer_genelist}
-\title{Perform correlation analysis}
+\title{Perform pan-cancer correlation analysis against a gene set}
 \usage{
 cor_pancancer_genelist(
   df,
   geneset_data,
   sample_type = c("Tumor", "Normal"),
-  cor_method = "pearson"
+  cor_method = "pearson",
+  min_n = 4
 )
 }
 \arguments{
-\item{df}{The expression data of the target gene in multiple datasets, obtained by the get_expr_data() function.}
+\item{df}{The expression data of the target gene in multiple datasets,
+obtained by \code{\link{get_expr_data}()}. Only the first expression
+column is used as the target (a message is printed if more are supplied).}
 
-\item{geneset_data}{The expression data of a genelist in multiple datasets, obtained by the get_expr_data() function.}
+\item{geneset_data}{The expression data of a genelist in multiple datasets,
+obtained by \code{\link{get_expr_data}()}.}
 
-\item{sample_type}{Sample type used for correlation analysis, default all types: c("Tumor", "Normal").}
+\item{sample_type}{Sample type used for correlation analysis, e.g.
+\code{c("Tumor", "Normal")}.}
 
-\item{cor_method}{Method for correlation analysis, default "pearson".}
+\item{cor_method}{Correlation method, \code{"pearson"} or \code{"spearman"}.}
+
+\item{min_n}{Minimum number of samples per dataset to run the correlation
+(datasets below this are skipped and reported, not silently dropped).}
+}
+\value{
+A list with elements \code{r}, \code{p}, \code{n} (dataset x feature
+  matrices of correlation, p-value and pairwise-complete sample size),
+  \code{sss} (per-dataset data.frames for scatter plots; columns
+  ID/type/dataset/target/features) and \code{summary}. \code{NULL} with an
+  explanatory message when nothing can be computed. Missing cells stay NA.
 }
 \description{
-Perform correlation analysis of the mRNA/protein expression data in CPTAC database.
+Correlate the expression of one target gene with a list of genes/features
+across several CPTAC datasets, dataset by dataset. Returns correlation and
+p-value matrices as well as a sample-size matrix and per-dataset data for
+scatter plots.
 }
 \examples{
 \dontrun{
-genelist <- c("SIRPA","CTLA4","TIGIT","LAG3","VSIR","LILRB2","SIGLEC7","HAVCR2","LILRB4","PDCD1","BTLA")
-dataset <- c("CCRCC_CPTAC_protein","GBM_CPTAC_protein","HNSCC_CPTAC_protein","LSCC_CPTAC_protein","LUAD_CPTAC_protein","PDAC_CPTAC_protein","UCEC_CPTAC2_protein","UCEC_CPTAC1_protein")
-df <- get_expr_data(genes = "TNS1",datasets = dataset)
-geneset_data <- get_expr_data(genes = genelist ,datasets = dataset)
-result <- cor_pancancer_genelist(df,geneset_data,sample_type = c("Tumor"))
+genelist <- c("SIRPA","CTLA4","TIGIT","LAG3","VSIR","LILRB2","SIGLEC7",
+              "HAVCR2","LILRB4","PDCD1","BTLA")
+dataset <- c("CCRCC_CPTAC_protein","GBM_CPTAC_protein","HNSCC_CPTAC_protein",
+             "LSCC_CPTAC_protein","LUAD_CPTAC_protein","PDAC_CPTAC_protein",
+             "UCEC_CPTAC2_protein","UCEC_CPTAC1_protein")
+df <- get_expr_data(genes = "TNS1", datasets = dataset)
+geneset_data <- get_expr_data(genes = genelist, datasets = dataset)
+result <- cor_pancancer_genelist(df, geneset_data, sample_type = "Tumor")
 }
 }

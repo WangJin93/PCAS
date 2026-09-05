@@ -4,19 +4,42 @@
 \alias{merge_clinic_data}
 \title{Merge clinic data}
 \usage{
-merge_clinic_data(cohort = "LUAD_APOLLO", data_input)
+merge_clinic_data(cohort = "LUAD_APOLLO", data_input, return_summary = TRUE)
 }
 \arguments{
-\item{cohort}{Data cohort, for example, "LUAD_APOLLO", "LUAD_CPTAC".}
+\item{cohort}{Data cohort, for example \code{"LUAD_APOLLO"}, \code{"LUAD_CPTAC"}
+(a trailing \code{_protein}/\code{_mRNA}/\code{_Phospho} suffix, if
+present, is stripped automatically).}
 
-\item{data_input}{Expression data obtained from get_expr_data() function.}
+\item{data_input}{Expression data obtained from \code{\link{get_expr_data}()}.}
+
+\item{return_summary}{Logical; if TRUE (default) a list
+\code{list(df = <merged data.frame>, summary = <matching/NA summary>)} is
+returned. If FALSE the plain merged data.frame is returned with the summary
+attached as \code{attr(x, "merge_summary")} for backward compatibility.}
+}
+\value{
+Either a list with the merged data.frame and a summary, or (when
+  \code{return_summary = FALSE}) the merged data.frame alone. Returns
+  \code{NULL} with explanatory messages when the clinical table cannot be
+  fetched or nothing can be merged.
 }
 \description{
-Get clinic data and merge it with expression data.
+Fetch the clinical table of a cohort and merge it with expression data
+(tumour samples only). Contrary to a silent inner join, the function reports
+exactly how many samples matched and how many clinical fields are missing.
+}
+\details{
+The summary contains: input sample counts, matched/unmatched sample counts,
+  per-clinical-field missingness, and which simplified stage columns were
+  added. Rows are never silently dropped without being accounted for in the
+  summary.
 }
 \examples{
 \dontrun{
-data_input <- get_expr_data("LUAD_APOLLO_mRNA","TP53")
-results <- merge_clinic_data("LUAD_APOLLO",data_input)
+data_input <- get_expr_data("LUAD_APOLLO_mRNA", "TP53")
+res <- merge_clinic_data("LUAD_APOLLO", data_input)
+head(res$df)          # merged expression + clinical columns
+res$summary           # matching / missingness report
 }
 }

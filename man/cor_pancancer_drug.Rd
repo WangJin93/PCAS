@@ -7,23 +7,47 @@
 cor_pancancer_drug(
   df,
   cor_method = "pearson",
-  Target.pathway = c("Cell cycle")
+  Target.pathway = "Cell cycle",
+  min_n = 4
 )
 }
 \arguments{
-\item{df}{The expression data of the target gene in multiple datasets, obtained by the get_expr_data() function.}
+\item{df}{The expression data of the target gene in multiple datasets,
+obtained by \code{\link{get_expr_data}()}. Only the first expression
+column is used as the target (a message is printed if more are supplied).}
 
-\item{cor_method}{Method for correlation analysis, default "pearson".}
+\item{cor_method}{Correlation method, \code{"pearson"} or \code{"spearman"}.}
 
-\item{Target.pathway}{The signaling pathways of anti-tumor drug targets, default "Cell cycle". Use "drug_info"to get the detail infomation of these drugs.}
+\item{Target.pathway}{The signalling pathways of the drug targets; use
+\code{unique(drug_info$Target.pathway)} for all valid values. Default
+\code{"Cell cycle"}.}
+
+\item{min_n}{Minimum number of samples per dataset to run the correlation
+(default 4).}
+}
+\value{
+A list with elements \code{r}, \code{p}, \code{n} (dataset x drug
+  matrices of correlation, p-value and pairwise-complete sample size),
+  \code{sss} (per-dataset data.frames for scatter plots) and \code{summary}.
+  \code{NULL} with an explanatory message when the pathway/features are
+  invalid or nothing can be merged. Missing cells stay NA (never removed).
 }
 \description{
-Calculate the correlation between target gene expression and anti-tumor drug sensitivity in multiple datasets.
+Calculate the correlation between target gene expression and the sensitivity
+of anti-tumour drugs (drug-response tables of the CPTAC pharmacoproteomics
+data) in multiple datasets, dataset by dataset.
+}
+\details{
+Only tumour samples that also have drug-sensitivity measurements can be
+  used; the number of matched/mismatched samples per dataset is reported in
+  \code{summary} and printed.
 }
 \examples{
 \dontrun{
-dataset <- c("CCRCC_CPTAC_protein","GBM_CPTAC_protein","HNSCC_CPTAC_protein","LSCC_CPTAC_protein","LUAD_CPTAC_protein","PDAC_CPTAC_protein","UCEC_CPTAC2_protein","UCEC_CPTAC1_protein")
-df <- get_expr_data(genes = "TNS1",datasets = dataset)
-result <- cor_pancancer_drug(df,Target.pathway = c("Cell cycle"))
+dataset <- c("CCRCC_CPTAC_protein","GBM_CPTAC_protein","HNSCC_CPTAC_protein",
+             "LSCC_CPTAC_protein","LUAD_CPTAC_protein","PDAC_CPTAC_protein",
+             "UCEC_CPTAC2_protein","UCEC_CPTAC1_protein")
+df <- get_expr_data(genes = "TNS1", datasets = dataset)
+result <- cor_pancancer_drug(df, Target.pathway = "Cell cycle")
 }
 }

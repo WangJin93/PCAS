@@ -134,6 +134,13 @@ server.modules_multi_gene <- function(input, output, session) {
   plot_func <- eventReactive(input$search_bttn, {
     if (length(ga_ids()) >= 1) {
       df <- get_expr_data(datasets = input$datasets_text,genes = ga_ids())
+      if (is.null(df)) {
+        showModal(modalDialog(
+          title = "Message", easyClose = TRUE,
+          "No expression data was returned for the requested gene list. Please check the gene symbols / phosphorylation sites."
+        ))
+        return(NULL)
+      }
       p <- viz_TvsN(df,df_type = "multi_gene",
                      Method =  input$method,
                      Show.P.value = input$Show.P.value,
@@ -156,6 +163,7 @@ server.modules_multi_gene <- function(input, output, session) {
   output$gene_pancan_dist <- renderPlot(width = width_scatter,
                                         height = height_scatter,{
     w$show() # Waiter add-ins
+    req(plot_func())
                                           plot_func()
                                         })
 
@@ -164,7 +172,9 @@ server.modules_multi_gene <- function(input, output, session) {
       paste0(input$ga_ids, "_", input$profile, "_pancan_CPTAC.csv")
     },
     content = function(file) {
-      write.csv(plot_func()$data, file, row.names = FALSE)
+      p <- plot_func()
+      if (is.null(p)) return(NULL)
+      write.csv(p$data, file, row.names = FALSE)
     }
   )
 
@@ -190,6 +200,7 @@ server.modules_multi_gene <- function(input, output, session) {
   # })
 
   output$tbl <- DT::renderDataTable(server = FALSE, {
+    req(plot_func())
     DT::datatable(
       plot_func()$data,
       rownames = T,

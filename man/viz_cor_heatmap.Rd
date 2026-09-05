@@ -2,25 +2,39 @@
 % Please edit documentation in R/viz_cor_heatmap.R
 \name{viz_cor_heatmap}
 \alias{viz_cor_heatmap}
-\title{Visualization of correlation results}
+\title{Heat map of correlation results}
 \usage{
-viz_cor_heatmap(r, p)
+viz_cor_heatmap(r, p, limits = c(-1, 1))
 }
 \arguments{
-\item{r}{The correlation coefficient matrix r of the correlation analysis results obtained from the functions cor_pancancer_genelist(), cor_pancancer_TIL(), and cor_pancancer_drug().}
+\item{r}{The correlation coefficient matrix of the results.}
 
-\item{p}{The P-value matrix p of the correlation analysis results obtained from the functions cor_pancancer_genelist(), cor_pancancer_TIL(), and cor_pancancer_drug().}
+\item{p}{The p-value matrix of the results (same dimensions/rownames).}
+
+\item{limits}{Colour scale limits, default \code{c(-1, 1)}.}
+}
+\value{
+A ggplot object. A hierarchical cluster tree is added on the left
+  when the \pkg{ggtree}/\pkg{aplot} packages are installed and the matrix
+  has no missing value (otherwise a message explains the fallback).
 }
 \description{
-Presenting correlation analysis results using heat maps based on ggplot2.
+Present correlation results (from \code{\link{cor_pancancer_genelist}()},
+\code{\link{cor_pancancer_TIL}()} or \code{\link{cor_pancancer_drug}()}) as
+a heat map: colour = correlation coefficient, text = significance stars.
+Cells without data (NA, e.g. too few samples) keep their own grey colour and
+are counted in a message — they are never turned into a coefficient of zero.
 }
 \examples{
 \dontrun{
-genelist <- c("SIRPA","CTLA4","TIGIT","LAG3","VSIR","LILRB2","SIGLEC7","HAVCR2","LILRB4","PDCD1","BTLA")
-dataset <- c("CCRCC_CPTAC_mRNA","GBM_CPTAC_mRNA","HNSCC_CPTAC_mRNA","LSCC_CPTAC_mRNA","LUAD_CPTAC_mRNA","PDAC_CPTAC_mRNA","UCEC_CPTAC2_mRNA","UCEC_CPTAC1_mRNA")
-df <- get_expr_data(genes = "TNS1",datasets = dataset)
-geneset_data <- get_expr_data(genes = genelist ,datasets = dataset)
-result <- cor_pancancer_genelist(df,geneset_data,sample_type = c("Tumor"))
-viz_cor_heatmap(result$r,result$p)
+genelist <- c("SIRPA","CTLA4","TIGIT","LAG3","VSIR","LILRB2","SIGLEC7",
+              "HAVCR2","LILRB4","PDCD1","BTLA")
+dataset <- c("CCRCC_CPTAC_mRNA","GBM_CPTAC_mRNA","HNSCC_CPTAC_mRNA",
+             "LSCC_CPTAC_mRNA","LUAD_CPTAC_mRNA","PDAC_CPTAC_mRNA",
+             "UCEC_CPTAC2_mRNA","UCEC_CPTAC1_mRNA")
+df <- get_expr_data(genes = "TNS1", datasets = dataset)
+geneset_data <- get_expr_data(genes = genelist, datasets = dataset)
+result <- cor_pancancer_genelist(df, geneset_data, sample_type = "Tumor")
+viz_cor_heatmap(result$r, result$p)
 }
 }

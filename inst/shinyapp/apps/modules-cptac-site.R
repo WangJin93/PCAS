@@ -74,8 +74,19 @@ server.modules_cptac_site <- function(input, output, session) {
       p <- viz_phoso_sites(
         gene = Pancan_search,phoso_infoDB = input$method
       )
+      if (is.null(p)) {
+        showModal(modalDialog(
+          title = "Message", easyClose = TRUE,
+          paste0("No protein diagram could be drawn for '", Pancan_search,
+                 "'. The gene may not have a reviewed UniProt entry, or the ",
+                 "UniProt network request failed (check your connection).")
+        ))
+        return(NULL)
+      }
+      p
+    } else {
+      NULL
     }
-    return(p)
   })
 
 
@@ -84,6 +95,7 @@ server.modules_cptac_site <- function(input, output, session) {
   output$phoso_dist <- renderPlot(width = width_scatter,
                                         height = height_scatter,{
     w$show() # Waiter add-ins
+    req(plot_func())
     plot_func()
   })
 
@@ -94,6 +106,7 @@ server.modules_cptac_site <- function(input, output, session) {
     },
     content = function(file) {
       p <- plot_func()
+      if (is.null(p)) return(NULL)
         pdf(file, width =  input$width_scatter/70 ,height = input$height_scatter/70)
         print(p)
         dev.off()
@@ -102,8 +115,20 @@ server.modules_cptac_site <- function(input, output, session) {
 
 
   output$tbl <- DT::renderDataTable(server = FALSE, {
+    p <- plot_func()
+    if (is.null(p)) {
+      return(DT::datatable(
+        data.frame(Note = "No site table available (gene not mapped or UniProt unreachable)."),
+        rownames = FALSE,
+        options = list(pageLength = 5, dom = "t")
+      ))
+    }
+    sites <- attr(p, "sites")
+    if (is.null(sites)) {
+      sites <- data.frame(Note = "No phosphorylation site found for this gene.")
+    }
     DT::datatable(
-      plot_func()[["layers"]][[3]][["data"]],
+      sites,
       rownames = T,
       extensions = c("Buttons"),
       options = list(

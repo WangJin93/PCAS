@@ -9,21 +9,40 @@ viz_DEGs_volcano(
   p.cut = 0.05,
   logFC.cut = 1,
   show.top = FALSE,
-  show.labels = NULL
+  show.labels = NULL,
+  label.size = 5
 )
 }
 \arguments{
-\item{cohort}{Data cohort, for example, "LUAD_APOLLO", "LUAD_CPTAC".}
+\item{df}{DEGs result obtained from \code{\link{get_DEGs_result}()}, i.e. a
+data.frame with a gene column and columns \code{logFC}, \code{P.Value}
+and/or \code{adj.P.Val}.}
 
-\item{data_input}{Expression data obtained from get_expr_data() function.}
+\item{p.cut}{Adjusted p-value threshold (0 < p.cut < 1), default 0.05.}
+
+\item{logFC.cut}{|log2 fold change| threshold, default 1.}
+
+\item{show.top}{Label the 5 most down- and the 5 most up-regulated genes
+(needs >= 10 rows; otherwise labelling is skipped with a message).}
+
+\item{show.labels}{Character vector of gene symbols to label; takes
+precedence over \code{show.top} when both are given.}
+
+\item{label.size}{Size of the gene labels (default 5).}
+}
+\value{
+A ggplot object. Missing/insufficient columns and invalid thresholds
+  are reported with messages instead of cryptic errors.
 }
 \description{
-Plotting volcano plot for DEGs between tumor and normal samples in CPTAC datasets.
+Volcano plot of differential expression results (from
+\code{\link{get_DEGs_result}()}): x = log2 fold change, y = -log10
+(adjusted p-value). Genes can be labelled by top up/down regulators or by a
+user-supplied list.
 }
 \examples{
 \dontrun{
 results <- get_DEGs_result(dataset = "LUAD_CPTAC_protein", method = "limma")
-results <- get_DEGs_result(dataset = "LUAD_CPTAC_mRNA", method = "t.test")
 viz_DEGs_volcano(results)
 }
 }

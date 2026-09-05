@@ -1,88 +1,274 @@
 #' @title Get CPTAC expression data
 #' @description
-#' Get the mRNA/protein expression data in CPTAC database.
-#' @import tibble reshape2
-#' @param datasets Dataset names, you can input one or multiple datasets. Use 'dataset$Abbre' to get all datasets.
-#' @param genes Gene symbols, you can input one or multiple symbols.
+#' Get the mRNA/protein/phosphosite expression data of one or several
+#' identifiers in one or several CPTAC datasets.
+#'
+#' @param datasets Dataset names, you can input one or multiple datasets. Use
+#'   \code{dataset_info$Abbre} to get all datasets.
+#' @param genes Gene symbols / identifiers, one or multiple. For mRNA datasets,
+#'   gene symbols are mapped internally through \code{idmap_RNA}; for
+#'   phosphoproteome datasets pass phosphorylation-site ids (e.g.
+#'   \code{"NP_000537.3:s315"}).
+#' @param use_cache Logical; use the on-disk query cache (default TRUE). The
+#'   cache location is controlled by \code{options(PCAS.cache.dir = <path>)};
+#'   set that option to \code{NA}/\code{FALSE} to disable caching entirely.
+#' @return A data.frame with columns \code{ID}, \code{type}, \code{dataset} and
+#'   one column per requested identifier (in the order of \code{genes}).
+#'   Identifiers without measurements in a dataset are kept as all-NA columns so
+#'   that downstream code never silently loses them. When no dataset returns any
+#'   row, \code{NULL} is returned (with messages explaining why).
+#' @details
+#'   The return value carries an attribute \code{availability}, a
+#'   \code{data.frame} with one row per \code{dataset x gene} combination giving
+#'   \code{present} (measured or not) and \code{n_valid} (number of samples with
+#'   a value). Read it with \code{attr(res, "availability")}.
+#'
+#'   If several mRNA probes map to the same gene symbol they are averaged per
+#'   sample (a message is printed), so a sample never appears twice for the same
+#'   gene.
 #' @examples
 #' \dontrun{
-#' results <- get_expr_data(datasets = "LUAD_CPTAC_mRNA", genes = c("GAPDH","TNS1"))
-#' results <- get_expr_data(datasets = c("LUAD_CPTAC_protein","LSCC_CPTAC_protein"), genes = "GAPDH")
-#' results <- get_expr_data(datasets = c("CCRCC_CPTAC_mRNA","GBM_CPTAC_mRNA","HNSCC_CPTAC_mRNA","LSCC_CPTAC_mRNA","LUAD_CPTAC_mRNA","PDAC_CPTAC_mRNA","UCEC_CPTAC2_mRNA","UCEC_CPTAC1_mRNA"), genes = c("SIRPA","CTLA4","TIGIT","LAG3","VSIR","LILRB2","SIGLEC7","HAVCR2","LILRB4","PDCD1","BTLA"))
+#' results <- get_expr_data(datasets = "LUAD_CPTAC_mRNA",
+#'                          genes = c("GAPDH", "TNS1"))
+#' results <- get_expr_data(datasets = c("LUAD_CPTAC_protein",
+#'                                        "LSCC_CPTAC_protein"),
+#'                          genes = "GAPDH")
 #' }
 #' @export
-#'
-get_expr_data <- function(datasets=c("LUAD_CPTAC_protein","LSCC_CPTAC_protein"), genes= c("TP53","TNS1")) {
-  # 创建缓存目录（如果不存在）
-  base_dir <- "data_files"
-  action_dir <- file.path(base_dir, "data_temp")
-  if (!dir.exists(base_dir)) {
-    dir.create(base_dir)
-  }
-  if (!dir.exists(action_dir)) {
-    dir.create(action_dir)
-  }
-  if (length(genes)==0){
+get_expr_data <- function(datasets = c("LUAD_CPTAC_protein",
+                                       "LSCC_CPTAC_protein"),
+                          genes = c("TP53", "TNS1"),
+                          use_cache = TRUE) {
+
+  # ---------------------------------------------------------------------------
+  # 1. Validate and normalise user input
+  # ---------------------------------------------------------------------------
+  genes <- unique(trimws(as.character(genes)))
+  genes <- genes[nzchar(genes)]
+  if (!length(genes)) {
+    .pcas_note("No gene identifiers supplied; returning NULL.")
     return(NULL)
-  }else{
-    message("Querying data of identifier ", paste0(genes,collapse = ", "), " from datasets ", paste0(datasets,collapse = ", "))
-    cptac_data<- data.frame()
-    for (x in datasets) {
-      if (stringr::str_detect(x,"mRNA")) {
-        id <- idmap_RNA[which(idmap_RNA$Symbol %in% genes),]
-        ids <- id$row_names
-      }else{
-        ids <- genes
-      }
-      # 生成基因的哈希值作为文件名的一部分
-      genes_hash <- digest::digest(ids, algo = "md5")
-      cache_file <- file.path(action_dir, paste0(x, "_", genes_hash, ".RData"))
+  }
 
-      # 检查缓存文件是否存在
-      if (file.exists(cache_file)) {
-        message("Loading cached data from ", cache_file)
-        load(cache_file)
-        cptac_data <- plyr::rbind.fill(cptac_data, cached_data)
-        next()
-      }
-      data <- get_data(x,
-                       "expression",
-                       ids)
+  datasets <- unique(trimws(as.character(datasets)))
+  datasets <- datasets[nzchar(datasets)]
+  if (!length(datasets)) {
+    .pcas_note("No dataset names supplied; returning NULL.")
+    return(NULL)
+  }
 
-      if (is.null(nrow(data))){
-        message(paste0(genes,collapse = ", "), " retrive no results in ", x)
-        next()
-      }else{
-        if (stringr::str_detect(x,"mRNA")) {
-          data <- merge(id[2:3],data,by="row_names")[-1]
-          colnames(data)[1] <- "row_names"
-        }
-        row.names(data) <- NULL
-        cached_data <- data %>% tibble::column_to_rownames(var = "row_names") %>% t() %>% as.data.frame()
-
-        cached_data$type <- lapply(row.names(cached_data), function(x) strsplit(x,"_")[[1]][length(strsplit(x,"_")[[1]])])%>% as.character()
-        cached_data$ID <- stringr::str_remove(row.names(cached_data),"_Tumor|_Normal|_Other")
-        # data <- tibble::rownames_to_column(data,var = "ID")
-        # data <- reshape2::melt(data, measure.vars = genes)
-        # data$value <- as.numeric(data$value)
-        cached_data <- cached_data[c("ID","type",colnames(cached_data)[1:(ncol(cached_data)-2)])]
-        cached_data$dataset <- x
-        # 保存到缓存
-        save(cached_data, file = cache_file)
-        cptac_data <- plyr::rbind.fill(cptac_data,cached_data)
-        }
+  # dataset names must come from dataset_info (if it is visible)
+  if (exists("dataset_info") && is.data.frame(dataset_info)) {
+    unknown <- setdiff(datasets, dataset_info$Abbre)
+    if (length(unknown)) {
+      .pcas_note("Ignoring unknown dataset name(s) (use dataset_info$Abbre): ",
+                 paste(unknown, collapse = ", "))
+      datasets <- setdiff(datasets, unknown)
     }
-    if (nrow(cptac_data) == 0){
-      message("Retrive no data.")
+    if (!length(datasets)) {
+      .pcas_note("No valid dataset names remain; returning NULL.")
       return(NULL)
     }
-    if (length(genes)==1){
-      cptac_data[,3] <- as.numeric(cptac_data[,3])
-    }else{
-      cptac_data[intersect(colnames(cptac_data),genes)] <- apply(cptac_data[intersect(colnames(cptac_data),genes)], 2, as.numeric)
-    }
-    cptac_data <- cptac_data[c("ID","type","dataset",intersect(colnames(cptac_data),genes))]
-    return(cptac_data)
   }
-}
 
+  cache_dir <- .pcas_cache_dir(use_cache)
+
+  .pcas_note("Querying data of identifier ", paste(genes, collapse = ", "),
+             " from datasets ", paste(datasets, collapse = ", "), ".")
+
+  # ---------------------------------------------------------------------------
+  # 2. Fetch dataset by dataset
+  # ---------------------------------------------------------------------------
+  parts   <- list()          # per-dataset long data.frame
+  skipped <- character()     # datasets that produced nothing
+  avail   <- list()          # availability records
+
+  for (x in datasets) {
+    is_mrna <- grepl("mRNA", x)
+    map_df  <- NULL
+
+    # -- mRNA datasets: map gene symbols to probe ids first ----------------
+    if (is_mrna) {
+      if (!exists("idmap_RNA") || !is.data.frame(idmap_RNA)) {
+        stop("mRNA dataset '", x,
+             "' requested but the idmap_RNA object is not available.",
+             call. = FALSE)
+      }
+      map_df <- idmap_RNA[idmap_RNA$Symbol %in% genes,
+                          c("row_names", "Symbol", "gene_type"), drop = FALSE]
+      map_df <- map_df[!duplicated(map_df$row_names), , drop = FALSE]
+      ids <- unique(map_df$row_names)
+    } else {
+      ids <- genes
+    }
+
+    record <- function(gene, present, n_valid, note) {
+      avail[[length(avail) + 1L]] <<- data.frame(
+        dataset = x, gene = gene, present = present, n_valid = n_valid,
+        note = note, stringsAsFactors = FALSE)
+    }
+
+    # identifiers that can never be measured in this dataset
+    if (is_mrna) {
+      never <- setdiff(genes, map_df$Symbol)
+      if (length(never)) {
+        .pcas_note("Identifier(s) ", paste(never, collapse = ", "),
+                   " were not found in the mRNA identifier map and are skipped ",
+                   "for dataset ", x, ".")
+        for (g in never) record(g, FALSE, 0L, "not in idmap_RNA")
+      }
+      if (!length(ids)) {
+        skipped <- c(skipped, x)
+        .pcas_note("No queryable identifier left for dataset ", x,
+                   "; it is skipped.")
+        next
+      }
+    }
+
+    # -- cache --------------------------------------------------------------
+    cache_file <- NULL
+    if (!is.null(cache_dir)) {
+      cache_file <- .pcas_cache_file(cache_dir, x, ids, what = "expr")
+      cache_file <- .pcas_ensure_cache_subdir(cache_file)
+    }
+    ds_df <- NULL
+    if (!is.null(cache_file) && file.exists(cache_file)) {
+      e <- new.env(parent = emptyenv())
+      ok <- tryCatch({load(cache_file, envir = e); TRUE},
+                     error = function(e) FALSE)
+      if (ok && exists("ds_df", envir = e, inherits = FALSE)) {
+        ds_df <- e$ds_df
+        .pcas_note("Loaded cached expression data for dataset ", x, ".")
+      }
+    }
+
+    # -- remote fetch --------------------------------------------------------
+    if (is.null(ds_df)) {
+      data <- get_data(x, "expression", ids)
+      if (is.null(data)) {
+        skipped <- c(skipped, x)
+        .pcas_note("Dataset ", x, " returned no expression rows for the ",
+                   "requested identifier(s); it is skipped.")
+        for (g in genes) record(g, FALSE, 0L, "API returned no rows")
+        next
+      }
+
+      # keep only the identifier column and the numeric sample columns
+      keycol <- "row_names"
+      num_df <- data[, setdiff(colnames(data), keycol), drop = FALSE]
+      keys   <- as.character(data[[keycol]])
+
+      # -- mRNA: attach symbols, collapse multi-probe symbols ----------------
+      if (is_mrna) {
+        mp <- map_df[, c("row_names", "Symbol"), drop = FALSE]
+        keep <- keys %in% mp$row_names
+        if (any(!keep)) {
+          .pcas_note("Dropped ", sum(!keep),
+                     " probe row(s) of dataset ", x,
+                     " that had no entry in idmap_RNA.")
+          keys   <- keys[keep]
+          num_df <- num_df[keep, , drop = FALSE]
+        }
+        sym <- mp$Symbol[match(keys, mp$row_names)]
+        keys <- sym
+      }
+
+      # collapse duplicated keys (multi-probe symbols / duplicated input)
+      tab <- table(keys)
+      multi <- names(tab)[tab > 1L]
+      if (length(multi)) {
+        .pcas_note("Averaging ", length(multi), " duplicated identifier row(s) ",
+                   "(e.g. multiple mRNA probes for ",
+                   paste(utils::head(multi, 5), collapse = ", "),
+                   if (length(multi) > 5) ", ..." else "", ") in dataset ",
+                   x, ".")
+      }
+      # transpose: build one value vector per sample per identifier
+      sample_names <- colnames(num_df)
+      smp <- .pcas_parse_sample(sample_names)
+      ds_df <- smp
+      for (g in genes) {
+        idx <- which(keys == g)
+        if (length(idx)) {
+          mat <- suppressWarnings(
+            vapply(idx, function(i) as.numeric(num_df[i, ]),
+                   numeric(length(sample_names))))
+          if (is.matrix(mat)) {
+            v <- rowMeans(mat, na.rm = TRUE)
+            v[is.nan(v)] <- NA_real_
+          } else {
+            v <- as.numeric(mat)
+          }
+          ds_df[[g]] <- v
+        } else {
+          ds_df[[g]] <- NA_real_
+        }
+      }
+      rownames(ds_df) <- NULL
+      ds_df$dataset <- x
+      ds_df <- ds_df[, c("ID", "type", "dataset", genes), drop = FALSE]
+
+      # write cache (best effort; a read-only FS must not abort the query)
+      if (!is.null(cache_file)) {
+        tryCatch(save(ds_df, file = cache_file), error = function(e) {
+          .pcas_note("Could not write cache file ", cache_file,
+                     " (", conditionMessage(e), "); continuing without it.")
+        })
+      }
+    }
+
+    parts[[x]] <- ds_df
+    for (g in genes) {
+      record(g, any(!is.na(ds_df[[g]])), sum(!is.na(ds_df[[g]])),
+             if (is_mrna && !(g %in% map_df$Symbol)) "not in idmap_RNA" else "")
+    }
+  }
+
+  # ---------------------------------------------------------------------------
+  # 3. Combine and report
+  # ---------------------------------------------------------------------------
+  if (!length(parts)) {
+    .pcas_note("No expression data could be retrieved for any dataset; ",
+               "returning NULL.")
+    return(NULL)
+  }
+  combined <- dplyr::bind_rows(parts)
+
+  # keep only sample rows carrying at least one measured value
+  n_before <- nrow(combined)
+  gene_cols <- intersect(genes, colnames(combined))
+  has_val <- rowSums(!is.na(combined[, gene_cols, drop = FALSE])) > 0L
+  combined <- combined[has_val, , drop = FALSE]
+  if (nrow(combined) < n_before) {
+    .pcas_note("Dropped ", n_before - nrow(combined),
+               " sample row(s) with no value for any requested identifier.")
+  }
+  if (!nrow(combined)) {
+    .pcas_note("No sample carried any value for the requested identifier(s); ",
+               "returning NULL.")
+    return(NULL)
+  }
+
+  combined <- combined[, c("ID", "type", "dataset", genes), drop = FALSE]
+  for (g in genes) {
+    combined[[g]] <- .pcas_as_numeric(combined[[g]])
+  }
+  rownames(combined) <- NULL
+
+  availability <- dplyr::bind_rows(avail)
+  missing_all <- genes[vapply(genes, function(g) {
+    !any(!is.na(combined[[g]]))
+  }, logical(1))]
+  if (length(missing_all)) {
+    .pcas_note("Identifier(s) with no measurement in any dataset: ",
+               paste(missing_all, collapse = ", "))
+  }
+  if (length(skipped)) {
+    .pcas_note("Dataset(s) skipped because they returned no data: ",
+               paste(skipped, collapse = ", "))
+  }
+  attr(combined, "availability") <- availability
+  .pcas_note("Returned expression for ", nrow(combined), " sample(s) across ",
+             length(unique(combined$dataset)), " dataset(s).")
+  combined
+}

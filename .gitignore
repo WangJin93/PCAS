@@ -1,0 +1,4 @@
+# local verification library (never commit)
+.lib/
+# on-disk API query cache (created at runtime)
+data_files/

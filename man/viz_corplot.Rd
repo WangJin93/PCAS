@@ -2,30 +2,42 @@
 % Please edit documentation in R/viz_corplot.R
 \name{viz_corplot}
 \alias{viz_corplot}
-\title{Plotting scatter plot}
+\title{Scatter plot of two variables with correlation annotation}
 \usage{
 viz_corplot(
   data,
   a,
   b,
   method = "pearson",
-  x_lab = " relative expression",
-  y_lab = " relative expression"
+  x_lab = " expression",
+  y_lab = " expression"
 )
 }
 \arguments{
-\item{data}{A gene expression dataset with at least two genes included, rows represent samples, and columns represent gene expression in the matrix.}
+\item{data}{A data.frame containing the two columns \code{a} and \code{b}.}
 
-\item{a}{Gene A}
+\item{a}{Column name of variable A.}
 
-\item{b}{Gene B}
+\item{b}{Column name of variable B.}
 
-\item{method}{Method for correlation analysis, "pearson" or "spearman".}
+\item{method}{Correlation method, \code{"pearson"} or \code{"spearman"}.}
 
-\item{x_lab}{X-axis label.}
+\item{x_lab}{X-axis label suffix.}
 
-\item{y_lab}{Y-axis label.}
+\item{y_lab}{Y-axis label suffix.}
+}
+\value{
+A ggplot object. Rows with missing values are counted and reported,
+  and the correlation is computed on the complete observations only.
 }
 \description{
-Scatter plot with sample size (n), correlation coefficient (r) and p value (p.value).
+Scatter plot of two expression columns with linear smooth, rug, and a title
+giving the sample size, correlation coefficient and p-value
+(\code{\link[stats]{cor.test}}).
+}
+\examples{
+\dontrun{
+df <- get_expr_data("LUAD_CPTAC_protein", c("TP53", "TNS1"))
+viz_corplot(df, "TP53", "TNS1")
+}
 }

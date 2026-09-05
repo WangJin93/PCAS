@@ -41,7 +41,7 @@ get_data(
 |table|For action = expression, use dataset$Abbre to get all tables; For action = clinic, remove \_protein/\_mRNA/\_Phospho from dataset$Abbre.|
 | :- | :- |
 |action|"expression", "degs" or "clinic".|
-|gene|Gene symbols, you can input one or multiple symbols.|
+|genes|Gene symbols / identifiers, one or multiple.|
 1. **get\_expr\_data()**
 
 **Description**
@@ -98,6 +98,9 @@ merge_clinic_data(cohort = "LUAD_APOLLO", data_input)
 |cohort|Data cohort, for example, "LUAD\_APOLLO", "LUAD\_CPTAC".|
 | :- | :- |
 |data\_input|Expression data obtained from get\_expr\_data() function.|
+|return\_summary|Return a list(df, summary) with the merge statistics and clinical-field missingness report (default TRUE). Set FALSE to obtain only the merged data.frame.|
+
+Samples without a clinical record and clinical fields with many missing values are reported instead of being silently dropped.
 
 1. **cor\_cancer\_genelist()**
 
@@ -257,9 +260,13 @@ viz_DEGs_volcano(
 ```
 **Arguments**
 
-|cohort|Data cohort, for example, "LUAD\_APOLLO", "LUAD\_CPTAC".|
+|df|DEGs result obtained from get\_DEGs\_result() (columns: Symbol/logFC/P.Value/adj.P.Val).|
 | :- | :- |
-|data\_input|Expression data obtained from get\_expr\_data() function.|
+|p.cut|Adjusted p-value threshold, default 0.05.|
+|logFC.cut|\|logFC\| threshold, default 1.|
+|show.top|Label the 5 most down/up-regulated genes (needs >= 10 rows).|
+|show.labels|Gene symbols to label; takes precedence over show.top.|
+|label.size|Size of the gene labels, default 5.|
 
 1. **viz\_cor\_heatmap()**
 
@@ -333,3 +340,24 @@ viz_phoso_sites(gene = "YTHDC2", phoso_infoDB = "CPTAC")
 
 
 
+## Notes & configuration
+
+- **Caching**: all query functions cache API responses on disk. The cache
+  directory defaults to the per-user R cache
+  (`tools::R_user_dir("PCAS", "cache")`) and can be changed or disabled with
+  `options(PCAS.cache.dir = <path>)` — set it to `NA` or `FALSE` to disable
+  caching.
+- **Missing-data feedback**: `get_expr_data()` keeps every requested identifier
+  as a column (all-NA when a dataset does not measure it), reports which
+  identifiers/datasets were skipped, and attaches an availability table as
+  `attr(result, "availability")`. The pan-cancer correlation functions return
+  an `n` matrix of pairwise-complete sample sizes and a `summary` element and
+  never silently delete datasets/features with `na.omit()`.
+- **Network errors**: `get_data()` returns `NULL` with a clear message when the
+  PCAS server is unreachable or returns no rows; callers treat that as
+  "no data".
+- **Feedback module of the Shiny app**: SMTP credentials are read from
+  environment variables `PCAS_SMTP_USER`, `PCAS_SMTP_PASS`, `PCAS_SMTP_FROM`,
+  `PCAS_SMTP_TO` (host/port: `PCAS_SMTP_HOST`, `PCAS_SMTP_PORT`). They are
+  never hard-coded in the repository.
+- The package is released under the MIT license (see `LICENSE`).

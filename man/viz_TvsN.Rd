@@ -2,11 +2,11 @@
 % Please edit documentation in R/viz_TvsN.R
 \name{viz_TvsN}
 \alias{viz_TvsN}
-\title{Visualizing genes expression}
+\title{Visualize gene expression (tumour vs normal)}
 \usage{
 viz_TvsN(
   df,
-  df_type = c("single", "multi_gene", "multi_set"),
+  df_type = "single",
   Show.P.value = TRUE,
   Show.P.label = TRUE,
   Method = "t.test",
@@ -16,33 +16,46 @@ viz_TvsN(
 )
 }
 \arguments{
-\item{df}{Gene expression data obtained from get_expr_data().}
+\item{df}{Gene expression data obtained from \code{\link{get_expr_data}()}.}
 
-\item{df_type}{The type of gene expression data, one value of "single","multi_gene", and "multi_set".}
+\item{df_type}{One of \code{"single"}, \code{"multi_gene"},
+\code{"multi_set"}.}
 
-\item{Show.P.value}{Whether to display the results of differential analysis, default TRUE.}
+\item{Show.P.value}{Whether to display the result of the differential test,
+default TRUE.}
 
-\item{Show.P.label}{Whether to display significance markers for differential analysis, default TRUE.}
+\item{Show.P.label}{Whether to display significance markers
+("***" / "**" / "*" / "ns") instead of numeric p-values, default TRUE.}
 
-\item{Method}{Methods of differential analysis, "t.test" or "limma", default "t.test".}
+\item{Method}{Method of the differential analysis, \code{"t.test"} or
+\code{"wilcox.test"} (anything accepted by
+\code{ggpubr::compare_means}).}
 
-\item{values}{Color palette for normal and tumor groups. Default c("#00AFBB", "#FC4E07").}
+\item{values}{Color palette for the two groups, default
+\code{c("#00AFBB", "#FC4E07")} (tumour, normal).}
 
-\item{Show.n}{Display sample size.}
+\item{Show.n}{Display sample sizes below the plot.}
 
-\item{Show.n.location}{Y-axis position displayed for sample size.}
+\item{Show.n.location}{Y position used for the sample-size labels; default
+\code{"default"} places them below the data range.}
+}
+\value{
+A ggplot object. Whenever rows are removed or a comparison is
+  impossible (e.g. a dataset has no Normal samples), messages explain what
+  happened instead of failing silently.
 }
 \description{
-Visualizing the different expression of mRNA/protein expression data between Tumor and Normal tissues in CPTAC database.
+Visualize expression differences between Tumour and Normal samples of CPTAC
+data with box/violin plots: one gene of one dataset (\code{"single"}), several
+genes of one dataset (\code{"multi_gene"}), or one gene across several
+datasets (\code{"multi_set"}).
 }
 \examples{
 \dontrun{
-df_single <- get_expr_data(datasets = "LUAD_CPTAC_mRNA",genes = c("TP53"))
-df_multi_gene <- get_expr_data(datasets = "LUAD_CPTAC_protein",genes = c("TP53","TNS1"))
-df_multi_set <- get_expr_data(datasets=c("CCRCC_CPTAC_protein","GBM_CPTAC_protein","HNSCC_CPTAC_protein","LSCC_CPTAC_protein","LUAD_CPTAC_protein" ,
-                                         "PDAC_CPTAC_protein" , "UCEC_CPTAC2_protein", "UCEC_CPTAC1_protein"),genes = c("TNS1"))
-viz_TvsN(df_single,df_type = "single")
-viz_TvsN(df_multi_gene,df_type = "multi_gene")
-viz_TvsN(df_multi_set,df_type = "multi_set")
+df_single <- get_expr_data(datasets = "LUAD_CPTAC_mRNA", genes = "TP53")
+df_multi_gene <- get_expr_data(datasets = "LUAD_CPTAC_protein",
+                               genes = c("TP53", "TNS1"))
+viz_TvsN(df_single, df_type = "single")
+viz_TvsN(df_multi_gene, df_type = "multi_gene")
 }
 }

@@ -1,77 +1,184 @@
-#' @title Phosphorylation site information
+#' @title Phosphorylation site visualisation on a protein diagram
 #' @description
-#' Query phosphorylation site information of target proteins based on CPTAC database phosphorylation proteomics data or UniProt database.
-#' @import drawProteins ggplot2
-#' @param gene Gene/protein symbol.
-#' @param phoso_infoDB Database for extracting phosphorylation site information. Default "CPTAC".
+#' Draw the domain structure of a protein (via the UniProt features API,
+#' through \pkg{drawProteins}) and overlay its phosphorylation sites. Sites are
+#' taken either from the CPTAC phosphoproteomics table (\code{idmap_protein},
+#' default) or from the UniProt features themselves.
+#' @param gene Gene/protein symbol, e.g. \code{"TNS1"}.
+#' @param phoso_infoDB One of \code{"CPTAC"} (default) or \code{"UniProt"}.
+#' @return A ggplot object. The plotted site table (if any) is attached as
+#'   \code{attr(p, "sites")} for export/verification. \code{NULL} (with an
+#'   explanatory message) is returned when the gene cannot be mapped or the
+#'   UniProt network call fails.
+#' @details
+#'   Combined CPTAC site identifiers such as \code{NP_000025.1:s218y223t227}
+#'   are parsed into all of their sites (s218, y223, t227), not only the last
+#'   one.
 #' @examples
 #' \dontrun{
 #' viz_phoso_sites("TNS1")
-#' viz_phoso_sites("YTHDC2",phoso_infoDB= "UniProt")
+#' viz_phoso_sites("YTHDC2", phoso_infoDB = "UniProt")
 #' }
 #' @export
-#'
-viz_phoso_sites <-  function(gene = "YTHDC2",phoso_infoDB="CPTAC"){
-  if (!phoso_infoDB %in% c("UniProt","CPTAC")){
-    message("The phoso_infoDB value only supports 'UniProt' and 'CPTAC'.")
+viz_phoso_sites <- function(gene = "YTHDC2",
+                            phoso_infoDB = "CPTAC") {
+  phoso_infoDB <- match.arg(phoso_infoDB, c("UniProt", "CPTAC"))
+  gene <- trimws(as.character(gene)[1L])
+  if (is.na(gene) || !nzchar(gene)) {
+    .pcas_note("viz_phoso_sites(): 'gene' must be a non-empty symbol.")
     return(NULL)
   }
-  uni_id <- uniport_map[which(uniport_map$Symbol == gene & uniport_map$Reviewed == "reviewed"),]$Entry %>% unique()
-  drawProteins::get_features(uni_id)-> rel_json
-  drawProteins::feature_to_dataframe(rel_json)-> rel_data
-  draw_canvas(rel_data) -> p
-  p <- draw_chains(p, rel_data,label_size = 5,labels = gene)
-  if (phoso_infoDB == "CPTAC"){
-    phoso_data <- idmap_protein[which(idmap_protein$Symbol == gene),]
-    sites <- c()
-    for (i in 1:nrow(phoso_data)) {
-      id <- phoso_data$row_names[i]
-      aa <- str_locate_all(id,"t|s|y")[[1]][,1]
-      for (i in 1:length(aa)) {
-        if (i== length(aa)){
-          bb <- substr(id,aa[i],nchar(id))
-        }else{
-          bb<- substr(id,aa[i],aa[i+1]-1)
+
+  # ---------------------------------------------------------------------------
+  # 1. Map gene symbol -> reviewed UniProt entry
+  # ---------------------------------------------------------------------------
+  if (!exists("uniport_map") || !is.data.frame(uniport_map)) {
+    stop("viz_phoso_sites(): the uniport_map object is not available.",
+         call. = FALSE)
+  }
+  hits <- uniport_map[uniport_map$Symbol == gene, , drop = FALSE]
+  reviewed <- unique(hits$Entry[hits$Reviewed == "reviewed"])
+  if (!length(reviewed)) {
+    .pcas_note("viz_phoso_sites(): no reviewed UniProt entry found for gene '",
+               gene, "'; nothing can be drawn.")
+    return(NULL)
+  }
+  uni_id <- reviewed[1L]
+  if (length(reviewed) > 1L) {
+    .pcas_note("Gene '", gene, "' maps to several reviewed UniProt entries; ",
+               "drawing the first one (", uni_id, ").")
+  }
+
+  # ---------------------------------------------------------------------------
+  # 2. Fetch UniProt features (network) and build the protein canvas
+  # ---------------------------------------------------------------------------
+  rel_json <- tryCatch(drawProteins::get_features(uni_id),
+                       error = function(e) e)
+  if (inherits(rel_json, "error") || is.null(rel_json) ||
+      !length(rel_json) || length(rel_json) == 1L &&
+      all(nchar(trimws(unlist(rel_json))) == 0L)) {
+    warning("viz_phoso_sites(): could not fetch UniProt features for ", uni_id,
+            " (", if (inherits(rel_json, "error")) conditionMessage(rel_json)
+              else "empty response",
+            "). Check your internet connection to UniProt.", call. = FALSE)
+    return(NULL)
+  }
+  rel_data <- tryCatch(drawProteins::feature_to_dataframe(rel_json),
+                       error = function(e) e)
+  if (inherits(rel_data, "error")) {
+    warning("viz_phoso_sites(): feature_to_dataframe failed: ",
+            conditionMessage(rel_data), call. = FALSE)
+    return(NULL)
+  }
+  if (!nrow(rel_data)) {
+    .pcas_note("The UniProt record of '", gene,
+               "' contains no structured feature; nothing can be drawn.")
+    return(NULL)
+  }
+
+  p <- drawProteins::draw_canvas(rel_data)
+  p <- drawProteins::draw_chains(p, rel_data, label_size = 5, labels = gene)
+
+  # ---------------------------------------------------------------------------
+  # 3. Phosphorylation sites
+  # ---------------------------------------------------------------------------
+  site_df <- NULL
+  if (phoso_infoDB == "CPTAC") {
+    if (!exists("idmap_protein") || !is.data.frame(idmap_protein)) {
+      stop("viz_phoso_sites(): the idmap_protein object is not available.",
+           call. = FALSE)
+    }
+    phoso_data <- idmap_protein[idmap_protein$Symbol == gene, , drop = FALSE]
+    ids <- phoso_data$row_names
+    ids <- ids[grepl(":", ids, fixed = TRUE)]        # keep phosphosite rows only
+
+    records <- list()
+    for (id in ids) {
+      prefix    <- sub(":.*$", "", id)
+      site_part <- sub("^[^:]*:", "", id)
+      tokens    <- regmatches(site_part,
+                              gregexpr("[sSyYtT][0-9]+", site_part))[[1L]]
+      if (!length(tokens)) next
+      records[[length(records) + 1L]] <- data.frame(
+        aa        = toupper(substr(tokens, 1L, 1L)),
+        phoso_site = paste0(prefix, ":", tokens),
+        location  = suppressWarnings(as.numeric(substring(tokens, 2L))),
+        order     = 1L,
+        stringsAsFactors = FALSE)
+    }
+    if (length(records)) {
+      site_df <- unique(do.call(rbind, records))
+      .pcas_note("Found ", nrow(site_df), " CPTAC phosphorylation site(s) ",
+                 "for gene '", gene, "'.")
+    } else {
+      .pcas_note("No CPTAC phosphorylation site found for gene '", gene,
+                 "'; drawing the protein structure only.")
+    }
+  } else {
+    # UniProt mode: look for phospho/modification features in rel_data
+    if (is.data.frame(rel_data) && nrow(rel_data)) {
+      type_col <- if ("type" %in% colnames(rel_data)) "type" else NA_character_
+      if (!is.na(type_col)) {
+        is_phos <- grepl("PHOS", rel_data[[type_col]], ignore.case = TRUE)
+        if ("description" %in% colnames(rel_data)) {
+          is_phos <- is_phos |
+            (rel_data[[type_col]] == "MOD_RES" &
+               grepl("[Pp]hospho", rel_data$description))
+        }
+        cand <- rel_data[is_phos, , drop = FALSE]
+        if (nrow(cand) && all(c("begin", "order") %in% colnames(cand))) {
+          site_df <- data.frame(aa = NA_character_,
+                                phoso_site = cand$type,
+                                location = cand$begin,
+                                order = cand$order,
+                                stringsAsFactors = FALSE)
         }
       }
-      sites <- c(sites,bb)
-
     }
-    sites <- unique(sites)
-    p_data <- data.frame(aa = substr(sites,1,1) %>% toupper(),phoso_site =paste0(uniport_map[which(uniport_map$Symbol == gene),]$From[1],":",  sites ),location = stringr::str_remove(sites,"s|y|t") %>% as.numeric(),order=1)
-    p <- p +    geom_segment(data = p_data,aes(x = location,
-                                               y = order+0.2,
-                                               xend = location,
-                                               yend = order + 0.3),
-                             color = "grey50", linewidth=0.5, linetype = 1) +
-      ggplot2::geom_point(data = p_data,
-                          ggplot2::aes(x = location, y = order + 0.3), shape = 21,
-                          colour = "black", fill = "red", size = 4, show.legend = F)
-  }else{
-    p_data <- phospho_site_info(rel_data)
-    p <- p +    geom_segment(data = p_data,aes(x = begin,
-                                               y = order+0.2,
-                                               xend = begin,
-                                               yend = order + 0.3),
-                             color = "grey50", linewidth=0.5, linetype = 1) +
-      ggplot2::geom_point(data = p_data,
-                          ggplot2::aes(x = begin, y = order + 0.3), shape = 21,
-                          colour = "black", fill = "red", size = 4, show.legend = F)
+    if (is.null(site_df)) {
+      .pcas_note("No phosphorylated residue feature found in the UniProt ",
+                 "record of '", gene, "'; drawing the protein structure only.")
+    }
   }
-  p <- draw_domains(p, rel_data,label_domains = F)
-  p <- draw_regions(p, rel_data)
-  p <- draw_motif(p, rel_data)
-  # p <- draw_phospho(p, rel_data, size = 8)
-  # white backgnd & change text size
-  p <- p + theme_bw(base_size = 20) +
-    theme(panel.grid.minor=element_blank(),
-          panel.grid.major=element_blank()) +
-    theme(axis.ticks =element_blank(),
-          axis.text.y =element_blank()) +
-    theme(panel.border =element_blank())
 
+  if (!is.null(site_df) && nrow(site_df)) {
+    site_df <- site_df[is.finite(site_df$location), , drop = FALSE]
+    p <- p +
+      ggplot2::geom_segment(data = site_df,
+                            ggplot2::aes(x = location, y = order + 0.2,
+                                         xend = location, yend = order + 0.3),
+                            colour = "grey50", linewidth = 0.5, linetype = 1) +
+      ggplot2::geom_point(data = site_df,
+                          ggplot2::aes(x = location, y = order + 0.3),
+                          shape = 21, colour = "black", fill = "red",
+                          size = 4, show.legend = FALSE)
+  }
 
-  p+theme(legend.position = "bottom")
-  # plotly::ggplotly(p) %>%
-  #   plotly::style(hovertext=paste0("site: ", p_data[,"phoso_site"]))
+  # ---------------------------------------------------------------------------
+  # 4. Draw remaining structural layers + cosmetics
+  # ---------------------------------------------------------------------------
+  p <- tryCatch(drawProteins::draw_domains(p, rel_data, label_domains = FALSE),
+                error = function(e) {
+                  .pcas_note("draw_domains skipped: ", conditionMessage(e))
+                  p
+                })
+  p <- tryCatch(drawProteins::draw_regions(p, rel_data), error = function(e) {
+    .pcas_note("draw_regions skipped: ", conditionMessage(e))
+    p
+  })
+  p <- tryCatch(drawProteins::draw_motif(p, rel_data), error = function(e) {
+    .pcas_note("draw_motif skipped: ", conditionMessage(e))
+    p
+  })
+
+  p <- p + ggplot2::theme_bw(base_size = 20) +
+    ggplot2::theme(panel.grid.minor = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_blank(),
+                   axis.ticks = ggplot2::element_blank(),
+                   axis.text.y = ggplot2::element_blank(),
+                   panel.border = ggplot2::element_blank(),
+                   legend.position = "bottom")
+
+  if (!is.null(site_df)) attr(p, "sites") <- site_df
+  p
 }

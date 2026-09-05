@@ -269,14 +269,20 @@ server.modules_Cancer_corr <- function(input, output, session) {
                                     id2,
                                     input$sample_type,
                                     input$cor_method)
+    if (is.null(results)) {
+      showModal(modalDialog(
+        title = "Message", easyClose = TRUE,
+        "No correlation could be computed. Please check the gene symbols / phosphosite ids, and that both datasets contain the requested identifiers."
+      ))
+      return(NULL)
+    }
     return(results)
   })
 
 corr_func <- eventReactive(input$ga_cor_data_rows_selected , {
     s <- input$ga_cor_data_rows_selected
-    if (length(s)) {
-      df<-plot_cor_func()$cor_data[c(1,4,s+4)]
-    }
+    if (!length(s)) return(NULL)
+    df <- plot_cor_func()$cor_data[c(1,4,s+4)]
     # datasets_text1 <- input$datasets_text
     # id1 <- input$ga_id
     # if (stringr::str_detect(datasets_text1,"Phospho")) {
@@ -309,18 +315,23 @@ corr_func <- eventReactive(input$ga_cor_data_rows_selected , {
 output$ga_cor_output <- renderPlot(width = 500,
                                    height = 300,{
                                       w1$show() # Waiter add-ins
-
-                                     df <- corr_func()%>% na.omit()
-                                     viz_corplot(df,colnames(df)[2],colnames(df)[3],method=input$cor_method,x_lab = " expression",y_lab = " expression")
+                                      df <- corr_func()
+                                      if (is.null(df)) return(NULL)
+                                      df <- na.omit(df)
+                                      if (!nrow(df)) return(NULL)
+                                      viz_corplot(df,colnames(df)[2],colnames(df)[3],method=input$cor_method,x_lab = " expression",y_lab = " expression")
                                     }
 )
 output$cor_download <- downloadHandler(
   filename = function() {
-    paste0(colnames(corr_func())[2],"_",colnames(corr_func())[3],".pdf")
+    df <- corr_func()
+    if (is.null(df)) "no_result.pdf" else paste0(colnames(df)[2],"_",colnames(df)[3],".pdf")
   },
   content = function(file) {
-    df <- corr_func()%>% na.omit()
-
+    df <- corr_func()
+    if (is.null(df)) return(NULL)
+    df <- na.omit(df)
+    if (!nrow(df)) return(NULL)
       pdf(file = file, onefile = FALSE,height = input$cor_height,width = input$cor_width)
     print(viz_corplot(df,colnames(df)[2],colnames(df)[3],method=input$cor_method,
                       x_lab = " expression",y_lab = " expression"))
@@ -419,6 +430,7 @@ output$cor_download <- downloadHandler(
   # )
   output$ga_cor_data <- DT::renderDataTable(server = FALSE, {
     if (input$ga_cor_submit>0){
+      req(plot_cor_func())
       DT::datatable(
         plot_cor_func()$cor_result,
         rownames = FALSE,selection = 'single',
@@ -442,6 +454,7 @@ output$cor_download <- downloadHandler(
   output$cor_scatter_data <- DT::renderDataTable(server = FALSE, {
     s <- input$ga_cor_data_rows_selected
     if (length(s)) {
+      req(corr_func())
       DT::datatable(
         corr_func(),
         rownames = T,

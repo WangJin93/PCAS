@@ -1,23 +1,43 @@
 Package: PCAS
 Type: Package
-Title: CPTAC proteomics & transcriptome data analysis
+Title: CPTAC Proteomics & Transcriptome Data Analysis
 Version: 0.1.0
-Date: 2024-061-19
+Date: 2024-06-19
+Authors@R: person("Jin", "Wang", email = "jin.wang93@outlook.com",
+                  role = c("aut", "cre"))
 Author: Jin Wang
-Maintainer: Jin Wang<jin.wang93@outlook.com>
-Description: CPTAC proteomics & transcriptome data analysis and visualization.
-License: None
+Maintainer: Jin Wang <jin.wang93@outlook.com>
+Description: Analysis and visualization of CPTAC (Clinical Proteomic Tumor
+    Analysis Consortium) proteomics, phosphoproteomics and transcriptome data
+    through the PCAS REST API, including expression queries, differential
+    expression, correlation with genes/drugs/immune infiltration, clinical
+    data merging and publication-ready visualization. Also ships the PCAS
+    Shiny application.
+URL: https://github.com/WangJin93/PCAS
+BugReports: https://github.com/WangJin93/PCAS/issues
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.1
+LazyDataCompression: xz
 Imports:
- dplyr,
- drawProteins,
- ggplot2,
- jsonlite,
- psych,
- reshape2,
- shiny,
- tibble,
- ggpubr,
- ggrepel
+    digest,
+    dplyr,
+    drawProteins,
+    ggplot2,
+    ggpubr,
+    ggrepel,
+    httr,
+    jsonlite,
+    psych,
+    reshape2,
+    scales,
+    shiny,
+    stats,
+    stringr,
+    tibble,
+    utils
+Suggests:
+    aplot,
+    ggtree,
+    roxygen2
+Config/roxygen2/version: 8.0.0

@@ -115,24 +115,66 @@ mod_feedback_server <- function(input, output, session){
       return(NULL)
     }
     
-    # submit issue
-    send.mail(from = 'jin.wang93@qq.com',
-              to = c('jin.wang93@outlook.com'),
-              subject= paste0(input$issue_title," & ", input$issue_labels),
-              body=input$issue_description, 
-              smtp=list(host.name='smtp.qq.com',
-                        port=465,                          
-                        user.name='jin.wang93@qq.com',   
-                        passwd='pkwnnnwhtorubddj',         
-                        ssl=T),  
-              authenticate = T,
-              send = T)
-    
+    # ---- submit issue (credentials come from the environment, never from the
+    #      repository; set PCAS_SMTP_USER / PCAS_SMTP_PASS / PCAS_SMTP_FROM /
+    #      PCAS_SMTP_TO before deploying, e.g. in ~/.Renviron) -------------
+    if (!requireNamespace("mailR", quietly = TRUE)) {
+      shinyWidgets::sendSweetAlert(
+        session = session,
+        title = "Setup error",
+        text = "The 'mailR' package is required to send feedback but is not installed.",
+        type = "error"
+      )
+      return(NULL)
+    }
+    smtp_user <- Sys.getenv("PCAS_SMTP_USER", unset = "")
+    smtp_pass <- Sys.getenv("PCAS_SMTP_PASS", unset = "")
+    smtp_from <- Sys.getenv("PCAS_SMTP_FROM", unset = smtp_user)
+    smtp_to   <- Sys.getenv("PCAS_SMTP_TO",
+                            unset = "jin.wang93@outlook.com")
+    if (!nzchar(smtp_user) || !nzchar(smtp_pass) || !nzchar(smtp_from)) {
+      shinyWidgets::sendSweetAlert(
+        session = session,
+        title = "Setup error",
+        text = "Feedback e-mail is not configured on this server (missing SMTP credentials). Please contact the maintainer directly.",
+        type = "error"
+      )
+      return(NULL)
+    }
+
+    ok <- tryCatch({
+      mailR::send.mail(
+        from    = smtp_from,
+        to      = c(smtp_to),
+        subject = paste0(input$issue_title, " & ", input$issue_labels),
+        body    = input$issue_description,
+        smtp    = list(host.name = Sys.getenv("PCAS_SMTP_HOST",
+                                              unset = "smtp.qq.com"),
+                       port     = as.integer(Sys.getenv("PCAS_SMTP_PORT",
+                                                        unset = "465")),
+                       user.name = smtp_user,
+                       passwd    = smtp_pass,
+                       ssl       = TRUE),
+        authenticate = TRUE,
+        send = TRUE)
+      TRUE
+    }, error = function(e) {
+      shinyWidgets::sendSweetAlert(
+        session = session,
+        title = "Sending failed",
+        text = paste0("The issue could not be sent (", conditionMessage(e),
+                      "). Please contact the maintainer directly."),
+        type = "error"
+      )
+      FALSE
+    })
+    if (!ok) return(NULL)
+
     # show confirmation
     shinyWidgets::sendSweetAlert(
       session = session,
       title = "Issue Submitted!",
-      text = "Thank you for your feedback! Your issue has been submitted to the shinylego issue tracker. One of the maintainers will review your issue and contact you for additional details.",
+      text = "Thank you for your feedback! Your issue has been submitted to the maintainer. One of the maintainers will review your issue and contact you for additional details.",
       type = "success"
     )
     

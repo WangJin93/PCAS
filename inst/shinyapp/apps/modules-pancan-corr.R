@@ -231,6 +231,7 @@ server.modules_pancan_corr <- function(input, output, session) {
   output$hm_gene_immune_cor <- renderPlot(width = width_scatter,
                                           height = height_scatter,{
     w$show() # Waiter add-ins
+    req(plot_func())
                                             viz_cor_heatmap(plot_func()$r,plot_func()$p)
                                           })
 

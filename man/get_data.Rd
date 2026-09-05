@@ -7,21 +7,49 @@
 get_data(
   table = "LUAD_Academia_protein",
   action = "expression",
-  genes = c("GAPDH", "TNS1")
+  genes = NULL,
+  timeout = 30,
+  tries = 2
 )
 }
 \arguments{
-\item{table}{For action = expression, use dataset$Abbre to get all tables; For action = clinic, remove _protein/_mRNA/_Phospho from dataset$Abbre.}
+\item{table}{Table/dataset name. For \code{action = "expression"} use
+\code{dataset_info$Abbre}; for \code{action = "clinic"} remove the
+\code{_protein}/\code{_mRNA}/\code{_Phospho} suffix from
+\code{dataset_info$Abbre}.}
 
-\item{action}{"expression", "degs" or "clinic".}
+\item{action}{One of \code{"expression"}, \code{"DEGs"} or \code{"clinic"}.}
 
-\item{gene}{Gene symbols, you can input one or multiple symbols.}
+\item{genes}{Character vector of gene symbols / identifiers. Optional for
+\code{action = "DEGs"} and \code{action = "clinic"} (the server ignores it
+for those actions).}
+
+\item{timeout}{Request timeout in seconds (default 30).}
+
+\item{tries}{Number of attempts before giving up (default 2).}
+}
+\value{
+A \code{data.frame} with the parsed API payload, or \code{NULL} when
+  the request failed or no rows were returned (an explanatory message is
+  always emitted first).
 }
 \description{
-Get the CPTAC data by using the api. All results saved in MySQL database.
+Get the CPTAC data by using the PCAS REST API
+(\url{https://www.jingege.wang/bioinformatics/PCAS/api.php}).
+This is the low-level entry point used by the other query functions.
+}
+\details{
+A failed or empty request returns \code{NULL} (never throws), so callers
+  can uniformly test for missing data. Network/server errors are reported
+  with \code{warning()}; an empty but successful response is reported with
+  \code{message()}.
 }
 \examples{
 \dontrun{
-results <- get_data(table = "LUAD_Academia_protein", action = "expression", genes = c("GAPDH","TNS1"))
+results <- get_data(table = "LUAD_Academia_protein",
+                    action = "expression",
+                    genes = c("GAPDH", "TNS1"))
+degs <- get_data(table = "LUAD_CPTAC_protein_limma", action = "DEGs")
+clinic <- get_data(table = "LUAD_APOLLO", action = "clinic")
 }
 }
