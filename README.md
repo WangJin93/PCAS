@@ -340,6 +340,10 @@ viz_phoso_sites(gene = "YTHDC2", phoso_infoDB = "CPTAC")
 
 
 
+## Release history
+
+See [NEWS.md](NEWS.md) for the changelog of every release.
+
 ## Notes & configuration
 
 - **Caching**: all query functions cache API responses on disk. The cache

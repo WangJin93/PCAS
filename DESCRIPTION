@@ -1,8 +1,8 @@
 Package: PCAS
 Type: Package
 Title: CPTAC Proteomics & Transcriptome Data Analysis
-Version: 0.1.0
-Date: 2024-06-19
+Version: 0.2.0
+Date: 2026-09-05
 Authors@R: person("Jin", "Wang", email = "jin.wang93@outlook.com",
                   role = c("aut", "cre"))
 Author: Jin Wang
